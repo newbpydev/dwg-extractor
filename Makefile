@@ -201,6 +201,79 @@ install: build ## Install to local bin directory
 	@echo "$(GREEN)[SUCCESS]$(NC) Installed to ~/bin/$(PROJECT_NAME)"
 	@echo "$(YELLOW)[NOTE]$(NC) Make sure ~/bin is in your PATH"
 
+# Bundle ODA File Converter
+.PHONY: bundle-oda
+bundle-oda: ## Bundle ODA File Converter for all platforms
+	@echo "$(BLUE)[INFO]$(NC) Bundling ODA File Converter..."
+	@./scripts/bundle_oda.sh --platform all
+	@echo "$(GREEN)[SUCCESS]$(NC) ODA bundling completed"
+
+.PHONY: bundle-oda-windows
+bundle-oda-windows: ## Bundle ODA File Converter for Windows
+	@echo "$(BLUE)[INFO]$(NC) Bundling ODA File Converter for Windows..."
+	@./scripts/bundle_oda.sh --platform windows
+	@echo "$(GREEN)[SUCCESS]$(NC) Windows ODA bundling completed"
+
+.PHONY: bundle-oda-linux
+bundle-oda-linux: ## Bundle ODA File Converter for Linux
+	@echo "$(BLUE)[INFO]$(NC) Bundling ODA File Converter for Linux..."
+	@./scripts/bundle_oda.sh --platform linux
+	@echo "$(GREEN)[SUCCESS]$(NC) Linux ODA bundling completed"
+
+.PHONY: bundle-oda-darwin
+bundle-oda-darwin: ## Bundle ODA File Converter for macOS
+	@echo "$(BLUE)[INFO]$(NC) Bundling ODA File Converter for macOS..."
+	@./scripts/bundle_oda.sh --platform darwin
+	@echo "$(GREEN)[SUCCESS]$(NC) macOS ODA bundling completed"
+
+# Build with bundled converters
+.PHONY: build-bundled
+build-bundled: bundle-oda build-all ## Build with bundled ODA converters for all platforms
+	@echo "$(GREEN)[SUCCESS]$(NC) Build with bundled converters completed!"
+
+# Package with bundled converters
+.PHONY: package-bundled
+package-bundled: ## Create distribution packages with bundled converters
+	@echo "$(BLUE)[INFO]$(NC) Creating distribution packages with bundled converters..."
+	@if [ -d "$(DIST_DIR)/windows-amd64" ] && [ -d "assets/oda_converter/windows" ]; then \
+		cp -r assets/oda_converter/windows $(DIST_DIR)/windows-amd64/oda_converter; \
+		cd $(DIST_DIR)/windows-amd64 && \
+		if command -v zip >/dev/null 2>&1; then \
+			zip -r ../$(PROJECT_NAME)-windows-amd64-bundled.zip .; \
+			echo "$(GREEN)[SUCCESS]$(NC) Created $(PROJECT_NAME)-windows-amd64-bundled.zip"; \
+		else \
+			echo "$(YELLOW)[WARNING]$(NC) zip command not found, skipping Windows bundled package"; \
+		fi; \
+	fi
+	@if [ -d "$(DIST_DIR)/linux-amd64" ] && [ -d "assets/oda_converter/linux" ]; then \
+		cp -r assets/oda_converter/linux $(DIST_DIR)/linux-amd64/oda_converter; \
+		cd $(DIST_DIR)/linux-amd64 && \
+		tar -czf ../$(PROJECT_NAME)-linux-amd64-bundled.tar.gz . && \
+		echo "$(GREEN)[SUCCESS]$(NC) Created $(PROJECT_NAME)-linux-amd64-bundled.tar.gz"; \
+	fi
+	@if [ -d "$(DIST_DIR)/darwin-amd64" ] && [ -d "assets/oda_converter/darwin" ]; then \
+		cp -r assets/oda_converter/darwin $(DIST_DIR)/darwin-amd64/oda_converter; \
+		cd $(DIST_DIR)/darwin-amd64 && \
+		if command -v zip >/dev/null 2>&1; then \
+			zip -r ../$(PROJECT_NAME)-darwin-amd64-bundled.zip .; \
+			echo "$(GREEN)[SUCCESS]$(NC) Created $(PROJECT_NAME)-darwin-amd64-bundled.zip"; \
+		else \
+			tar -czf ../$(PROJECT_NAME)-darwin-amd64-bundled.tar.gz . && \
+			echo "$(GREEN)[SUCCESS]$(NC) Created $(PROJECT_NAME)-darwin-amd64-bundled.tar.gz"; \
+		fi; \
+	fi
+	@if [ -d "$(DIST_DIR)/darwin-arm64" ] && [ -d "assets/oda_converter/darwin" ]; then \
+		cp -r assets/oda_converter/darwin $(DIST_DIR)/darwin-arm64/oda_converter; \
+		cd $(DIST_DIR)/darwin-arm64 && \
+		if command -v zip >/dev/null 2>&1; then \
+			zip -r ../$(PROJECT_NAME)-darwin-arm64-bundled.zip .; \
+			echo "$(GREEN)[SUCCESS]$(NC) Created $(PROJECT_NAME)-darwin-arm64-bundled.zip"; \
+		else \
+			tar -czf ../$(PROJECT_NAME)-darwin-arm64-bundled.tar.gz . && \
+			echo "$(GREEN)[SUCCESS]$(NC) Created $(PROJECT_NAME)-darwin-arm64-bundled.tar.gz"; \
+		fi; \
+	fi
+
 # Show build summary
 .PHONY: summary
 summary: ## Show build summary
