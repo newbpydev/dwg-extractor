@@ -116,22 +116,21 @@
     * [x] Added `NewDWGConverter` constructor with input validation.
     * [x] Added comprehensive tests for the interface and implementation.
 
-2.  **[ ] Task 2.2: Implement Conversion Logic**
+2.  **[x] Task 2.2: Implement Conversion Logic**
     * **TDD:**
-        * [ ] **Write failing test:** In `pkg/converter/converter_test.go`, mock `os/exec` or use a test script to simulate the ODA converter. Test successful conversion:
-            * Input: valid DWG path, valid output directory.
-            * Expected: path to the generated DXF file, no error.
-        * [ ] **Implement:** The `ConvertToDXF` method.
-            * Use `os/exec` to call the ODA File Converter CLI.
-                * Command: `ODAConverterPath -i <dwgPath> -o <outputDir> -f DXF -v ACAD2018` (or a configurable DXF version).
-            * Ensure the output DXF file name is predictable (e.g., same base name as DWG, but with `.dxf` extension).
-            * Handle temporary output directory creation and cleanup if necessary.
-        * [ ] **Write failing test:** Test for ODA converter command failure (e.g., converter not found, invalid DWG).
-        * [ ] **Implement:** Error handling for `cmd.Run()` or `cmd.CombinedOutput()`. Capture and return stderr from the converter.
-        * [ ] **Write failing test:** Test for input file not found.
-        * [ ] **Implement:** Pre-check for DWG file existence.
-        * [ ] **Write failing test:** Test for output directory creation failure.
-        * [ ] **Implement:** Error handling for `os.MkdirAll`.
+        * [x] **Write failing test:** In `pkg/converter/converter_test.go`, mocked `os/exec` to simulate the ODA converter.
+            * Tested successful conversion with valid DWG path and output directory.
+            * Verified correct command-line arguments are passed to the converter.
+            * Tested error conditions (missing files, empty paths).
+        * [x] **Implemented:** The `ConvertToDXF` method.
+            * Used `os/exec` to call the ODA File Converter CLI with proper arguments.
+            * Added input validation and file existence checks.
+            * Implemented output directory creation if it doesn't exist.
+            * Added proper error handling and context for command timeouts.
+            * Included comprehensive error messages with stderr output when available.
+        * [x] **Added tests** for command execution failures and error conditions.
+            * Verified proper error messages are returned for various failure scenarios.
+            * Ensured test cleanup using temporary directories.
 
 3.  **[ ] Task 2.3: Integrate Conversion into Main Flow**
     * In `cmd/root.go`, after parsing the DWG file path flag and loading config:

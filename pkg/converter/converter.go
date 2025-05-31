@@ -3,10 +3,18 @@
 package converter
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"time"
 )
+
+// commandContext is a variable that holds the function to create commands
+// This is used to allow mocking in tests
+var commandContext = exec.CommandContext
 
 // DWGConverter defines the interface for converting DWG files to DXF.
 type DWGConverter interface {
@@ -32,11 +40,16 @@ func NewDWGConverter(converterPath string) (DWGConverter, error) {
 	}, nil
 }
 
-// ConvertToDXF converts the specified DWG file to DXF format.
+// ConvertToDXF converts the specified DWG file to DXF format using the ODA File Converter.
 // It returns the path to the converted DXF file or an error if the conversion fails.
 func (c *odaconverter) ConvertToDXF(dwgPath, outputDir string) (string, error) {
 	if dwgPath == "" {
 		return "", fmt.Errorf("DWG path cannot be empty")
+	}
+
+	// Check if the input file exists
+	if _, err := os.Stat(dwgPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("input file does not exist: %s", dwgPath)
 	}
 
 	// Ensure output directory exists
@@ -44,13 +57,52 @@ func (c *odaconverter) ConvertToDXF(dwgPath, outputDir string) (string, error) {
 		return "", fmt.Errorf("failed to create output directory: %w", err)
 	}
 
-	// Generate DXF file path (same name as DWG but with .dxf extension)
-	ext := filepath.Ext(dwgPath)
-	dxfPath := filepath.Join(outputDir, filepath.Base(dwgPath)[0:len(dwgPath)-len(ext)]+".dxf")
+	// Get the base name of the input file without extension
+	baseName := filepath.Base(dwgPath)
+	ext := filepath.Ext(baseName)
+	if ext != "" {
+		baseName = baseName[0 : len(baseName)-len(ext)]
+	}
 
-	// TODO: Implement actual conversion using ODA File Converter in Task 2.2
-	// This is a placeholder that will be replaced with the actual implementation
-	// that calls the ODA File Converter CLI.
+	// Generate DXF file path (same name as DWG but with .dxf extension)
+	dxfPath := filepath.Join(outputDir, baseName+".dxf")
+
+	// Create a context with timeout for the conversion
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	// Prepare the command to run the ODA File Converter
+	// Command format: ODAFileConverter.exe <input> <output> version [input format] [output format] [recurse] [report] [audit]
+	cmd := commandContext(
+		ctx,
+		c.converterPath,
+		"-i", dwgPath,
+		"-o", outputDir,
+		"-f", "DXF",
+		"-v", "ACAD2018",
+	)
+
+	// Set up output buffers
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	// Run the command
+	if err := cmd.Run(); err != nil {
+		// If the command failed, include stderr in the error message
+		return "", fmt.Errorf("failed to convert DWG to DXF: %w\n%s", err, stderr.String())
+	}
+
+	// Verify the output file was created
+	if _, err := os.Stat(dxfPath); os.IsNotExist(err) {
+		// If the expected DXF file doesn't exist, check for other possible names
+		// Sometimes the converter might use a different naming convention
+		files, err := filepath.Glob(filepath.Join(outputDir, "*.dxf"))
+		if err != nil || len(files) == 0 {
+			return "", fmt.Errorf("conversion failed: no DXF file was generated")
+		}
+		dxfPath = files[0] // Use the first DXF file found
+	}
 
 	return dxfPath, nil
 }
