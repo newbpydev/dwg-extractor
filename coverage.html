@@ -59,7 +59,7 @@
 				
 				<option value="file1">github.com/remym/go-dwg-extractor/cmd/root.go (95.7%)</option>
 				
-				<option value="file2">github.com/remym/go-dwg-extractor/cmd/tui.go (2.0%)</option>
+				<option value="file2">github.com/remym/go-dwg-extractor/cmd/tui.go (28.6%)</option>
 				
 				<option value="file3">github.com/remym/go-dwg-extractor/main.go (0.0%)</option>
 				
@@ -73,7 +73,7 @@
 				
 				<option value="file8">github.com/remym/go-dwg-extractor/pkg/tui/app.go (78.1%)</option>
 				
-				<option value="file9">github.com/remym/go-dwg-extractor/pkg/tui/dxf_view.go (72.4%)</option>
+				<option value="file9">github.com/remym/go-dwg-extractor/pkg/tui/dxf_view.go (88.8%)</option>
 				
 				<option value="file10">github.com/remym/go-dwg-extractor/pkg/tui/status_view.go (100.0%)</option>
 				
@@ -240,7 +240,7 @@ func init() <span class="cov8" title="1">{
 }</span>
 
 // RunTUI runs the TUI command
-func RunTUI(args []string) error <span class="cov0" title="0">{
+func RunTUI(args []string) error <span class="cov8" title="1">{
         var dxfData *data.ExtractedData
         var statusMsg string
 
@@ -290,7 +290,7 @@ func RunTUI(args []string) error <span class="cov0" title="0">{
                         return err
                 }</span>
                 <span class="cov0" title="0">statusMsg = "[green]Conversion and parsing successful![-]"</span>
-        } else<span class="cov0" title="0"> {
+        } else<span class="cov8" title="1"> {
                 // Use sample data if no file is provided
                 statusMsg = "[yellow]No DWG file provided. Using sample data.[-]"
                 dxfData = &amp;data.ExtractedData{
@@ -304,7 +304,7 @@ func RunTUI(args []string) error <span class="cov0" title="0">{
                 }
         }</span>
 
-        <span class="cov0" title="0">statusView.SetText(statusMsg + "\n[gray]Press any key to continue...[-]")
+        <span class="cov8" title="1">statusView.SetText(statusMsg + "\n[gray]Press any key to continue...[-]")
         app.App().Draw()
         app.App().SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov0" title="0">{
                 // Any key continues to main TUI
@@ -319,13 +319,13 @@ func RunTUI(args []string) error <span class="cov0" title="0">{
 
 
 // ExecuteTUI executes the TUI command
-func ExecuteTUI() error <span class="cov0" title="0">{
+func ExecuteTUI() error <span class="cov8" title="1">{
         if err := tuiCmd.Parse(os.Args[2:]); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
         // If no DWG file is provided, use sample data
-        <span class="cov0" title="0">return RunTUI(nil)</span>
+        <span class="cov8" title="1">return RunTUI(nil)</span>
 }
 </pre>
 		
@@ -899,7 +899,7 @@ func NewDXFView(app *tview.Application) *DXFView <span class="cov8" title="1">{
         }
 
         // Set up search input handler
-        searchInput.SetChangedFunc(func(text string) </span><span class="cov0" title="0">{
+        searchInput.SetChangedFunc(func(text string) </span><span class="cov8" title="1">{
                 view.FilterLayers(text)
         }</span>)
 
@@ -1062,13 +1062,13 @@ func (v *DXFView) showEntitiesView() <span class="cov8" title="1">{
 // setupKeybindings sets up keyboard shortcuts
 func (v *DXFView) setupKeybindings() <span class="cov8" title="1">{
         // Handle key events for the search input
-        v.searchInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov0" title="0">{
+        v.searchInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov8" title="1">{
                 switch event.Key() </span>{
-                case tcell.KeyDown, tcell.KeyTab:<span class="cov0" title="0">
+                case tcell.KeyDown, tcell.KeyTab:<span class="cov8" title="1">
                         // Move focus to the layers list
                         v.app.SetFocus(v.layers)
                         return nil</span>
-                case tcell.KeyEsc:<span class="cov0" title="0">
+                case tcell.KeyEsc:<span class="cov8" title="1">
                         // Clear search and reset focus
                         v.searchInput.SetText("")
                         v.app.SetFocus(v.layers)
@@ -1078,30 +1078,30 @@ func (v *DXFView) setupKeybindings() <span class="cov8" title="1">{
         })
 
         // Handle key events for the layers list
-        <span class="cov8" title="1">v.layers.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">v.layers.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov8" title="1">{
                 switch event.Key() </span>{
-                case tcell.KeyEnter:<span class="cov0" title="0">
-                        if v.layers.GetItemCount() &gt; 0 </span><span class="cov0" title="0">{
+                case tcell.KeyEnter:<span class="cov8" title="1">
+                        if v.layers.GetItemCount() &gt; 0 </span><span class="cov8" title="1">{
                                 index := v.layers.GetCurrentItem()
                                 v.showLayerDetails(index)
                         }</span>
-                        <span class="cov0" title="0">return nil</span>
-                case tcell.KeyEsc, tcell.KeyBackspace, tcell.KeyBackspace2:<span class="cov0" title="0">
+                        <span class="cov8" title="1">return nil</span>
+                case tcell.KeyEsc, tcell.KeyBackspace, tcell.KeyBackspace2:<span class="cov8" title="1">
                         // Move focus back to search
                         v.app.SetFocus(v.searchInput)
                         return nil</span>
-                case tcell.KeyRune:<span class="cov0" title="0">
+                case tcell.KeyRune:<span class="cov8" title="1">
                         // Space or 't' toggles layer visibility
-                        if event.Rune() == ' ' || event.Rune() == 't' || event.Rune() == 'T' </span><span class="cov0" title="0">{
+                        if event.Rune() == ' ' || event.Rune() == 't' || event.Rune() == 'T' </span><span class="cov8" title="1">{
                                 idx := v.layers.GetCurrentItem()
                                 v.ToggleLayerVisibility(idx)
                                 return nil
                         }</span>
                         // If a letter or number is pressed, focus on search and type
-                        <span class="cov0" title="0">if (event.Rune() &gt;= 'a' &amp;&amp; event.Rune() &lt;= 'z') ||
+                        <span class="cov8" title="1">if (event.Rune() &gt;= 'a' &amp;&amp; event.Rune() &lt;= 'z') ||
                                 (event.Rune() &gt;= 'A' &amp;&amp; event.Rune() &lt;= 'Z') ||
                                 (event.Rune() &gt;= '0' &amp;&amp; event.Rune() &lt;= '9') ||
-                                event.Rune() == ' ' || event.Rune() == ':' </span><span class="cov0" title="0">{
+                                event.Rune() == ' ' || event.Rune() == ':' </span><span class="cov8" title="1">{
                                 v.app.SetFocus(v.searchInput)
                                 // Append the pressed key to the search input
                                 v.searchInput.SetText(v.searchInput.GetText() + string(event.Rune()))
@@ -1112,9 +1112,9 @@ func (v *DXFView) setupKeybindings() <span class="cov8" title="1">{
         })
 
         // Handle key events for the entity list
-        <span class="cov8" title="1">v.entityList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">v.entityList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov8" title="1">{
                 switch event.Key() </span>{
-                case tcell.KeyEsc, tcell.KeyBackspace, tcell.KeyBackspace2:<span class="cov0" title="0">
+                case tcell.KeyEsc, tcell.KeyBackspace, tcell.KeyBackspace2:<span class="cov8" title="1">
                         v.showLayersView()
                         return nil</span>
                 }
