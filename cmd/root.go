@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/remym/go-dwg-extractor/pkg/converter"
 	"github.com/remym/go-dwg-extractor/pkg/config"
 	"github.com/remym/go-dwg-extractor/pkg/dxfparser"
 )
@@ -62,8 +61,8 @@ func Execute() error {
 			outputDir = filepath.Dir(rootCmd)
 		}
 
-		// Create a new DWG converter
-		dwgConverter, err := converter.NewDWGConverter(cfg.ODAConverterPath)
+		// Create a new DWG converter (use DI for testing)
+		dwgConverter, err := newDWGConverter(cfg.ODAConverterPath)
 		if err != nil {
 			return fmt.Errorf("failed to create DWG converter: %w", err)
 		}

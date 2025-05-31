@@ -79,11 +79,11 @@ func TestRootCommand(t *testing.T) {
 			args:        []string{"cmd"},
 			setup:       func() { newDWGConverter = converter.NewDWGConverter },
 			wantErr:     true,
-			errContains: "no DWG file specified",
+			errContains: "no command provided. Use 'extract' or 'tui'",
 		},
 		{
 			name: "successful conversion with default output",
-			args: []string{"cmd", "-file", testDWGPath},
+			args: []string{"cmd", "extract", "-file", testDWGPath},
 			setup: func() {
 				newDWGConverter = func(path string) (converter.DWGConverter, error) {
 					mock := &MockDWGConverter{
@@ -102,7 +102,10 @@ AC1015
 ENDSEC
 0
 EOF`
-							_ = os.WriteFile(dxfPath, []byte(dxfContent), 0644)
+							err := os.WriteFile(dxfPath, []byte(dxfContent), 0644)
+							if err != nil {
+								return "", err
+							}
 							return dxfPath, nil
 						},
 					}
@@ -113,7 +116,7 @@ EOF`
 		},
 		{
 			name: "successful conversion with custom output directory",
-			args: []string{"cmd", "-file", testDWGPath, "-output", outputDir},
+			args: []string{"cmd", "extract", "-file", testDWGPath, "-output", outputDir},
 			setup: func() {
 				newDWGConverter = func(path string) (converter.DWGConverter, error) {
 					mock := &MockDWGConverter{
@@ -132,7 +135,10 @@ AC1015
 ENDSEC
 0
 EOF`
-							_ = os.WriteFile(dxfPath, []byte(dxfContent), 0644)
+							err := os.WriteFile(dxfPath, []byte(dxfContent), 0644)
+							if err != nil {
+								return "", err
+							}
 							return dxfPath, nil
 						},
 					}
@@ -143,7 +149,7 @@ EOF`
 		},
 		{
 			name: "converter returns error",
-			args: []string{"cmd", "-file", testDWGPath},
+			args: []string{"cmd", "extract", "-file", testDWGPath},
 			setup: func() {
 				newDWGConverter = func(path string) (converter.DWGConverter, error) {
 					return nil, assert.AnError
@@ -154,7 +160,7 @@ EOF`
 		},
 		{
 			name: "conversion fails",
-			args: []string{"cmd", "-file", testDWGPath},
+			args: []string{"cmd", "extract", "-file", testDWGPath},
 			setup: func() {
 				newDWGConverter = func(path string) (converter.DWGConverter, error) {
 					mock := &MockDWGConverter{
