@@ -6,95 +6,105 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/remym/go-dwg-extractor/pkg/converter"
 	"github.com/remym/go-dwg-extractor/pkg/config"
 	"github.com/remym/go-dwg-extractor/pkg/dxfparser"
 )
 
 var (
-	dwgFile   string
+	rootCmd  string
 	outputDir string
 	cfg       *config.AppConfig
 )
 
 // Execute runs the root command
 func Execute() error {
-	// Parse command line flags
-	rootCmd := flag.String("file", "", "Path to the DWG file to process")
-	flag.StringVar(&outputDir, "output", "", "Output directory for converted files (default: same as input file)")
-	flag.Parse()
-
-	// Load configuration
-	var err error
-	cfg, err = config.LoadConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
+	// Check if no command is provided
+	if len(os.Args) < 2 {
+		return fmt.Errorf("no command provided. Use 'extract' or 'tui'")
 	}
 
-	// Validate configuration
-	if err := cfg.Validate(); err != nil {
-		return fmt.Errorf("invalid configuration: %w", err)
-	}
-
-	// Check if file is provided
-	if *rootCmd == "" {
-		return fmt.Errorf("no DWG file specified. Please provide a file using the -file flag")
-	}
-
-	// Check if file exists
-	if _, err := os.Stat(*rootCmd); os.IsNotExist(err) {
-		return fmt.Errorf("file does not exist: %s", *rootCmd)
-	}
-
-	dwgFile = *rootCmd
-
-	// Set default output directory if not provided
-	if outputDir == "" {
-		outputDir = filepath.Dir(dwgFile)
-	}
-
-	// Create output directory if it doesn't exist
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
-	}
-
-	fmt.Printf("Processing DWG file: %s\n", dwgFile)
-	fmt.Printf("Output directory: %s\n", outputDir)
-	fmt.Printf("Using ODA Converter: %s\n", cfg.ODAConverterPath)
-
-	// Create converter instance
-	converter, err := newDWGConverter(cfg.ODAConverterPath)
-	if err != nil {
-		return fmt.Errorf("failed to create DWG converter: %w", err)
-	}
-
-	// Convert DWG to DXF
-	dxfPath, err := converter.ConvertToDXF(dwgFile, outputDir)
-	if err != nil {
-		return fmt.Errorf("conversion failed: %w", err)
-	}
-
-	fmt.Printf("Successfully converted to DXF: %s\n", dxfPath)
-
-	// Parse the DXF file
-	var parser dxfparser.ParserInterface = dxfparser.NewParser()
-	data, err := parser.ParseDXF(dxfPath)
-	if err != nil {
-		return fmt.Errorf("failed to parse DXF file: %w", err)
-	}
-
-	// Display extracted information
-	fmt.Println("\nExtracted DXF Information:")
-	fmt.Printf("DXF Version: %s\n", data.DXFVersion)
-	fmt.Printf("Number of Layers: %d\n", len(data.Layers))
-
-	// Display layer information
-	if len(data.Layers) > 0 {
-		fmt.Println("\nLayers:")
-		for i, layer := range data.Layers {
-			fmt.Printf("  %d. %s (Color: %d, On: %v, Frozen: %v, LineType: %s)\n",
-				i+1, layer.Name, layer.Color, layer.IsOn, layer.IsFrozen, layer.LineType)
+	// Handle the command
+	command := os.Args[1]
+	if command == "tui" {
+		// For TUI, just run it without any file requirements
+		return ExecuteTUI()
+	} else if command == "extract" {
+		// For extract, a DWG file is required
+		if len(os.Args) < 3 {
+			return fmt.Errorf("no DWG file specified. Usage: %s extract [DWG file]", os.Args[0])
 		}
+		// Remove the "extract" command from args
+		os.Args = append(os.Args[:1], os.Args[2:]...)
+
+		// Parse command line flags for extract command
+		fileFlag := flag.String("file", "", "Path to the DWG file to process")
+		flag.StringVar(&outputDir, "output", "", "Output directory for converted files (default: same as input file)")
+		flag.Parse()
+
+		// Set the root command from the flag
+		rootCmd = *fileFlag
+
+		// Check if file is provided for extract command
+		if rootCmd == "" {
+			return fmt.Errorf("no DWG file specified. Please provide a file using the -file flag")
+		}
+
+		// Load configuration
+		var err error
+		cfg, err = config.LoadConfig()
+		if err != nil {
+			return fmt.Errorf("failed to load configuration: %w", err)
+		}
+
+		// If output directory is not specified, use the same directory as the input file
+		if outputDir == "" {
+			outputDir = filepath.Dir(rootCmd)
+		}
+
+		// Create a new DWG converter
+		dwgConverter, err := converter.NewDWGConverter(cfg.ODAConverterPath)
+		if err != nil {
+			return fmt.Errorf("failed to create DWG converter: %w", err)
+		}
+
+		// Convert DWG to DXF
+		dxfFile, err := dwgConverter.ConvertToDXF(rootCmd, outputDir)
+		if err != nil {
+			return fmt.Errorf("conversion failed: %w", err)
+		}
+
+		// Parse the DXF file
+		var dxfParser dxfparser.ParserInterface = dxfparser.NewParser()
+		dxfData, err := dxfParser.ParseDXF(dxfFile)
+		if err != nil {
+			return fmt.Errorf("failed to parse DXF file: %w", err)
+		}
+
+		// Display the extracted information
+		fmt.Println("Successfully extracted DXF information:")
+		fmt.Printf("DXF Version: %s\n", dxfData.DXFVersion)
+		fmt.Printf("Number of layers: %d\n", len(dxfData.Layers))
+		for _, layer := range dxfData.Layers {
+			onOff := "ON"
+			if !layer.IsOn {
+				onOff = "OFF"
+			}
+			frozen := ""
+			if layer.IsFrozen {
+				frozen = " (FROZEN)"
+			}
+
+			fmt.Printf("\nLayer: %s\n", layer.Name)
+			fmt.Printf("  Color: %d, Line Type: %s, %s%s\n", layer.Color, layer.LineType, onOff, frozen)
+		}
+
+		return nil
 	}
+
+	return fmt.Errorf("unknown command: %s. Use 'extract' or 'tui'", command)
+
+	// No duplicate code here
 
 	return nil
 }
