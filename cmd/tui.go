@@ -15,9 +15,11 @@ import (
 // tuiCmd represents the tui command
 var tuiCmd = flag.NewFlagSet("tui", flag.ExitOnError)
 var tuiOutputDir string
+var tuiFileFlag string
 
 func init() {
 	tuiCmd.StringVar(&tuiOutputDir, "output", "", "Output directory for converted files (default: same as input file)")
+	tuiCmd.StringVar(&tuiFileFlag, "file", "", "Path to the DWG file to process")
 }
 
 // RunTUI runs the TUI command
@@ -91,8 +93,14 @@ func ExecuteTUI() error {
 		return err
 	}
 
-	// Check if a file argument was provided
-	args := tuiCmd.Args()
+	// Check if a file argument was provided via flag or positional argument
+	var args []string
+	if tuiFileFlag != "" {
+		args = []string{tuiFileFlag}
+	} else if len(tuiCmd.Args()) > 0 {
+		args = tuiCmd.Args()
+	}
+
 	if len(args) > 0 {
 		return RunTUI(args)
 	}
