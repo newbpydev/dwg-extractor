@@ -3,6 +3,8 @@ package cmd
 import (
 	"flag"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/remym/go-dwg-extractor/pkg/config"
@@ -32,6 +34,22 @@ func RunTUI(args []string) error {
 		time.Sleep(100 * time.Millisecond)
 
 		if args != nil && len(args) > 0 {
+			dwgFile := args[0]
+
+			// Check if the file is a DXF file (for testing)
+			if strings.ToLower(filepath.Ext(dwgFile)) == ".dxf" {
+				app.ShowStatus("Parsing DXF file: " + dwgFile)
+				var dxfParser dxfparser.ParserInterface = dxfparser.NewParser()
+				dxfData, err := dxfParser.ParseDXF(dwgFile)
+				if err != nil {
+					app.ShowError("Failed to parse DXF file: " + err.Error())
+					return
+				}
+				app.ShowStatus("DXF parsing successful!")
+				app.UpdateDXFData(dxfData)
+				return
+			}
+
 			// Process DWG file
 			// Load configuration
 			cfg, err := config.LoadConfig()
@@ -48,9 +66,21 @@ func RunTUI(args []string) error {
 			}
 
 			// Convert DWG to DXF
-			dwgFile := args[0]
 			app.ShowStatus("Converting: " + dwgFile)
-			dxfFile, err := dwgConverter.ConvertToDXF(dwgFile, "")
+
+			// Determine output directory
+			outputDir := tuiOutputDir
+			if outputDir == "" {
+				// If no output directory specified, use a temp directory
+				tempDir, err := os.MkdirTemp("", "dwg-extractor-*")
+				if err != nil {
+					app.ShowError("Failed to create temp directory: " + err.Error())
+					return
+				}
+				outputDir = tempDir
+			}
+
+			dxfFile, err := dwgConverter.ConvertToDXF(dwgFile, outputDir)
 			if err != nil {
 				app.ShowError("Conversion failed: " + err.Error())
 				return
