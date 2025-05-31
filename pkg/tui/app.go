@@ -102,3 +102,8 @@ func (a *App) Stop() {
 func (a *App) App() *tview.Application {
 	return a.app
 }
+
+// GetLayout returns the main pages layout for the TUI
+func (a *App) GetLayout() *tview.Pages {
+	return a.pages
+}
