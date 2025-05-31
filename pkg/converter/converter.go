@@ -71,15 +71,32 @@ func (c *odaconverter) ConvertToDXF(dwgPath, outputDir string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
+	// Get absolute path for the input file directory
+	inputDir := filepath.Dir(dwgPath)
+	absInputDir, err := filepath.Abs(inputDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to get absolute path for input directory: %w", err)
+	}
+
+	// Get absolute path for the output directory
+	absOutputDir, err := filepath.Abs(outputDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to get absolute path for output directory: %w", err)
+	}
+
 	// Prepare the command to run the ODA File Converter
-	// Command format: ODAFileConverter.exe <input> <output> version [input format] [output format] [recurse] [report] [audit]
+	// Command format from ODA dialog: InputFolder OutputFolder OutputVersion OutputFileType RecurseFolder AuditFile [InputFilter]
+	// Example: "C:\input" "C:\output" "ACAD2018" "DXF" "0" "0" "*.DWG"
 	cmd := commandContext(
 		ctx,
 		c.converterPath,
-		"-i", dwgPath,
-		"-o", outputDir,
-		"-f", "DXF",
-		"-v", "ACAD2018",
+		absInputDir,  // Input Folder (absolute path, no manual quotes)
+		absOutputDir, // Output Folder (absolute path, no manual quotes)
+		"ACAD2018",   // Output version
+		"DXF",        // Output File type
+		"0",          // Recurse Input Folder (0 = no)
+		"0",          // Audit each file (0 = no)
+		"*.DWG",      // Input files filter
 	)
 
 	// Set up output buffers

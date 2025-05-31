@@ -59,16 +59,18 @@ func TestDWGConverter_ConvertToDXF(t *testing.T) {
 			outputDir: filepath.Join(tempDir, "output"),
 			setup: func() {
 				commandContext = func(ctx context.Context, command string, args ...string) *exec.Cmd {
-					// Verify the command and args are as expected
+					// Verify the command and args are as expected for new format
 					assert.Equal(t, "path/to/odaconverter", command)
-					assert.Contains(t, args, "-i")
-					assert.Contains(t, args, testDWGPath)
-					assert.Contains(t, args, "-o")
-					assert.Contains(t, args, filepath.Join(tempDir, "output"))
-					assert.Contains(t, args, "-f")
-					assert.Contains(t, args, "DXF")
-					assert.Contains(t, args, "-v")
-					assert.Contains(t, args, "ACAD2018")
+					assert.Len(t, args, 7) // Should have 7 positional arguments
+
+					// Check positional arguments: InputDir OutputDir Version FileType Recurse Audit Filter
+					assert.Contains(t, args[0], tempDir)                       // Input directory should contain tempDir
+					assert.Equal(t, filepath.Join(tempDir, "output"), args[1]) // Output directory
+					assert.Equal(t, "ACAD2018", args[2])                       // Version
+					assert.Equal(t, "DXF", args[3])                            // File type
+					assert.Equal(t, "0", args[4])                              // Recurse
+					assert.Equal(t, "0", args[5])                              // Audit
+					assert.Equal(t, "*.DWG", args[6])                          // Filter
 
 					// Create a mock DXF file to simulate conversion
 					dxfPath := filepath.Join(filepath.Join(tempDir, "output"), "test.dxf")
