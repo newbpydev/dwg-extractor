@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/remym/go-dwg-extractor/pkg/converter"
 	"github.com/remym/go-dwg-extractor/pkg/config"
-	"github.com/remym/go-dwg-extractor/pkg/dxfparser"
+	"github.com/remym/go-dwg-extractor/pkg/converter"
 	"github.com/remym/go-dwg-extractor/pkg/data"
+	"github.com/remym/go-dwg-extractor/pkg/dxfparser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,11 +31,6 @@ func (m *MockDWGConverter) ConvertToDXF(dwgPath, outputDir string) (string, erro
 
 func (m *MockParser) ParseDXF(dxfPath string) (*data.ExtractedData, error) {
 	return m.ParseDXFFunc(dxfPath)
-}
-
-// Mock function to create a parser
-var newParser = func() dxfparser.ParserInterface {
-	return dxfparser.NewParser()
 }
 
 func TestRootCommand(t *testing.T) {
@@ -80,6 +75,27 @@ func TestRootCommand(t *testing.T) {
 			setup:       func() { newDWGConverter = converter.NewDWGConverter },
 			wantErr:     true,
 			errContains: "no command provided. Use 'extract' or 'tui'",
+		},
+		{
+			name:        "extract command without file argument",
+			args:        []string{"cmd", "extract"},
+			setup:       func() { newDWGConverter = converter.NewDWGConverter },
+			wantErr:     true,
+			errContains: "no DWG file specified. Usage:",
+		},
+		{
+			name:        "extract command without file flag",
+			args:        []string{"cmd", "extract", "-output", outputDir},
+			setup:       func() { newDWGConverter = converter.NewDWGConverter },
+			wantErr:     true,
+			errContains: "no DWG file specified. Please provide a file using the -file flag",
+		},
+		{
+			name:        "unknown command",
+			args:        []string{"cmd", "unknown"},
+			setup:       func() { newDWGConverter = converter.NewDWGConverter },
+			wantErr:     true,
+			errContains: "unknown command: unknown. Use 'extract' or 'tui'",
 		},
 		{
 			name: "successful conversion with default output",
@@ -148,6 +164,39 @@ EOF`
 			wantErr: false,
 		},
 		{
+			name: "successful conversion with layers",
+			args: []string{"cmd", "extract", "-file", testDWGPath},
+			setup: func() {
+				newDWGConverter = func(path string) (converter.DWGConverter, error) {
+					mock := &MockDWGConverter{
+						ConvertToDXFFunc: func(dwgPath, outputDir string) (string, error) {
+							dxfPath := filepath.Join(filepath.Dir(dwgPath), filepath.Base(dwgPath)+".dxf")
+							err := os.WriteFile(dxfPath, []byte("dummy dxf"), 0644)
+							if err != nil {
+								return "", err
+							}
+							return dxfPath, nil
+						},
+					}
+					return mock, nil
+				}
+				newParser = func() dxfparser.ParserInterface {
+					return &MockParser{
+						ParseDXFFunc: func(dxfPath string) (*data.ExtractedData, error) {
+							return &data.ExtractedData{
+								DXFVersion: "R2020",
+								Layers: []data.LayerInfo{
+									{Name: "Layer1", IsOn: true, IsFrozen: false, Color: 1, LineType: "CONTINUOUS"},
+									{Name: "Layer2", IsOn: false, IsFrozen: true, Color: 2, LineType: "DASHED"},
+								},
+							}, nil
+						},
+					}
+				}
+			},
+			wantErr: false,
+		},
+		{
 			name: "converter returns error",
 			args: []string{"cmd", "extract", "-file", testDWGPath},
 			setup: func() {
@@ -174,6 +223,34 @@ EOF`
 			wantErr:     true,
 			errContains: "conversion failed",
 		},
+		{
+			name: "DXF parsing fails",
+			args: []string{"cmd", "extract", "-file", testDWGPath},
+			setup: func() {
+				newDWGConverter = func(path string) (converter.DWGConverter, error) {
+					mock := &MockDWGConverter{
+						ConvertToDXFFunc: func(dwgPath, outputDir string) (string, error) {
+							dxfPath := filepath.Join(filepath.Dir(dwgPath), filepath.Base(dwgPath)+".dxf")
+							err := os.WriteFile(dxfPath, []byte("dummy dxf"), 0644)
+							if err != nil {
+								return "", err
+							}
+							return dxfPath, nil
+						},
+					}
+					return mock, nil
+				}
+				newParser = func() dxfparser.ParserInterface {
+					return &MockParser{
+						ParseDXFFunc: func(dxfPath string) (*data.ExtractedData, error) {
+							return nil, assert.AnError
+						},
+					}
+				}
+			},
+			wantErr:     true,
+			errContains: "failed to parse DXF file",
+		},
 	}
 
 	for _, tt := range tests {
@@ -183,9 +260,13 @@ EOF`
 
 			// Set up the test
 			if tt.setup != nil {
-				// Save the original newDWGConverter
+				// Save the original functions
 				oldNewDWGConverter := newDWGConverter
-				defer func() { newDWGConverter = oldNewDWGConverter }()
+				oldNewParser := newParser
+				defer func() {
+					newDWGConverter = oldNewDWGConverter
+					newParser = oldNewParser
+				}()
 
 				tt.setup()
 			}

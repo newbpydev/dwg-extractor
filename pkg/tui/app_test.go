@@ -102,3 +102,19 @@ func TestApp_App_GetLayout(t *testing.T) {
 	require.NotNil(t, app.App(), "App.App() returned nil")
 	require.NotNil(t, app.GetLayout(), "App.GetLayout() returned nil")
 }
+
+// TestNewStatusView tests the NewStatusView function
+func TestNewStatusView(t *testing.T) {
+	statusView := NewStatusView()
+
+	require.NotNil(t, statusView, "NewStatusView() returned nil")
+
+	// Test that the status view has the expected properties
+	title := statusView.GetTitle()
+	require.Equal(t, "Status", title, "Expected title to be 'Status'")
+
+	// Test that we can set text
+	statusView.SetText("Test message")
+	text := statusView.GetText(false)
+	require.Equal(t, "Test message", text, "Expected text to be set correctly")
+}

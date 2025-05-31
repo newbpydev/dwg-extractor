@@ -156,7 +156,40 @@ func (v *DXFView) showLayerDetails(layerIndex int) {
 				fmt.Sprintf("Layer: %s, Color: %d", e.Layer, e.Color),
 				0, nil)
 			entityCount++
-			// Add cases for other entity types as needed
+		case *data.CircleInfo:
+			v.entityList.AddItem(
+				fmt.Sprintf("Circle center:(%.1f,%.1f) radius:%.1f",
+					e.Center.X, e.Center.Y, e.Radius),
+				fmt.Sprintf("Layer: %s, Color: %d", e.Layer, e.Color),
+				0, nil)
+			entityCount++
+		case *data.TextInfo:
+			v.entityList.AddItem(
+				fmt.Sprintf("Text: %s at (%.1f,%.1f)",
+					e.Value, e.InsertionPoint.X, e.InsertionPoint.Y),
+				fmt.Sprintf("Layer: %s, Height: %.1f", e.Layer, e.Height),
+				0, nil)
+			entityCount++
+		case *data.PolylineInfo:
+			v.entityList.AddItem(
+				fmt.Sprintf("Polyline with %d points", len(e.Points)),
+				fmt.Sprintf("Layer: %s, Color: %d, Closed: %v", e.Layer, e.Color, e.IsClosed),
+				0, nil)
+			entityCount++
+		case *data.BlockInfo:
+			v.entityList.AddItem(
+				fmt.Sprintf("Block: %s at (%.1f,%.1f)",
+					e.Name, e.InsertionPoint.X, e.InsertionPoint.Y),
+				fmt.Sprintf("Layer: %s, Rotation: %.1f", e.Layer, e.Rotation),
+				0, nil)
+			entityCount++
+		default:
+			// Handle any other entity types
+			v.entityList.AddItem(
+				fmt.Sprintf("Entity: %T", entity),
+				fmt.Sprintf("Layer: %s", entity.GetLayer()),
+				0, nil)
+			entityCount++
 		}
 	}
 

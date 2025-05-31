@@ -55,25 +55,27 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">github.com/remym/go-dwg-extractor/cmd/root.go (67.4%)</option>
+				<option value="file0">github.com/remym/go-dwg-extractor/cmd/converter_mock.go (100.0%)</option>
 				
-				<option value="file1">github.com/remym/go-dwg-extractor/cmd/tui.go (2.0%)</option>
+				<option value="file1">github.com/remym/go-dwg-extractor/cmd/root.go (95.7%)</option>
 				
-				<option value="file2">github.com/remym/go-dwg-extractor/main.go (0.0%)</option>
+				<option value="file2">github.com/remym/go-dwg-extractor/cmd/tui.go (2.0%)</option>
 				
-				<option value="file3">github.com/remym/go-dwg-extractor/pkg/config/config.go (93.3%)</option>
+				<option value="file3">github.com/remym/go-dwg-extractor/main.go (0.0%)</option>
 				
-				<option value="file4">github.com/remym/go-dwg-extractor/pkg/converter/converter.go (100.0%)</option>
+				<option value="file4">github.com/remym/go-dwg-extractor/pkg/config/config.go (93.3%)</option>
 				
-				<option value="file5">github.com/remym/go-dwg-extractor/pkg/data/models.go (100.0%)</option>
+				<option value="file5">github.com/remym/go-dwg-extractor/pkg/converter/converter.go (100.0%)</option>
 				
-				<option value="file6">github.com/remym/go-dwg-extractor/pkg/dxfparser/parser.go (100.0%)</option>
+				<option value="file6">github.com/remym/go-dwg-extractor/pkg/data/models.go (100.0%)</option>
 				
-				<option value="file7">github.com/remym/go-dwg-extractor/pkg/tui/app.go (78.1%)</option>
+				<option value="file7">github.com/remym/go-dwg-extractor/pkg/dxfparser/parser.go (100.0%)</option>
 				
-				<option value="file8">github.com/remym/go-dwg-extractor/pkg/tui/dxf_view.go (72.5%)</option>
+				<option value="file8">github.com/remym/go-dwg-extractor/pkg/tui/app.go (78.1%)</option>
 				
-				<option value="file9">github.com/remym/go-dwg-extractor/pkg/tui/status_view.go (0.0%)</option>
+				<option value="file9">github.com/remym/go-dwg-extractor/pkg/tui/dxf_view.go (72.4%)</option>
+				
+				<option value="file10">github.com/remym/go-dwg-extractor/pkg/tui/status_view.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -90,17 +92,34 @@
 		<pre class="file" id="file0" style="display: none">package cmd
 
 import (
+        "github.com/remym/go-dwg-extractor/pkg/converter"
+        "github.com/remym/go-dwg-extractor/pkg/dxfparser"
+)
+
+// newDWGConverter is a variable that holds the function to create a new DWGConverter
+// This is used to allow mocking in tests
+var newDWGConverter = converter.NewDWGConverter
+
+// newParser is a variable that holds the function to create a new Parser
+// This is used to allow mocking in tests
+var newParser = func() dxfparser.ParserInterface <span class="cov8" title="1">{
+        return dxfparser.NewParser()
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package cmd
+
+import (
         "flag"
         "fmt"
         "os"
         "path/filepath"
 
         "github.com/remym/go-dwg-extractor/pkg/config"
-        "github.com/remym/go-dwg-extractor/pkg/dxfparser"
 )
 
 var (
-        rootCmd  string
+        rootCmd   string
         outputDir string
         cfg       *config.AppConfig
 )
@@ -119,7 +138,7 @@ func Execute() error <span class="cov8" title="1">{
                 return ExecuteTUI()
         }</span> else<span class="cov8" title="1"> if command == "extract" </span><span class="cov8" title="1">{
                 // For extract, a DWG file is required
-                if len(os.Args) &lt; 3 </span><span class="cov0" title="0">{
+                if len(os.Args) &lt; 3 </span><span class="cov8" title="1">{
                         return fmt.Errorf("no DWG file specified. Usage: %s extract [DWG file]", os.Args[0])
                 }</span>
                 // Remove the "extract" command from args
@@ -134,7 +153,7 @@ func Execute() error <span class="cov8" title="1">{
                 rootCmd = *fileFlag
 
                 // Check if file is provided for extract command
-                if rootCmd == "" </span><span class="cov0" title="0">{
+                if rootCmd == "" </span><span class="cov8" title="1">{
                         return fmt.Errorf("no DWG file specified. Please provide a file using the -file flag")
                 }</span>
 
@@ -163,9 +182,9 @@ func Execute() error <span class="cov8" title="1">{
                 }</span>
 
                 // Parse the DXF file
-                <span class="cov8" title="1">var dxfParser dxfparser.ParserInterface = dxfparser.NewParser()
+                <span class="cov8" title="1">dxfParser := newParser()
                 dxfData, err := dxfParser.ParseDXF(dxfFile)
-                if err != nil </span><span class="cov0" title="0">{
+                if err != nil </span><span class="cov8" title="1">{
                         return fmt.Errorf("failed to parse DXF file: %w", err)
                 }</span>
 
@@ -173,24 +192,24 @@ func Execute() error <span class="cov8" title="1">{
                 <span class="cov8" title="1">fmt.Println("Successfully extracted DXF information:")
                 fmt.Printf("DXF Version: %s\n", dxfData.DXFVersion)
                 fmt.Printf("Number of layers: %d\n", len(dxfData.Layers))
-                for _, layer := range dxfData.Layers </span><span class="cov0" title="0">{
+                for _, layer := range dxfData.Layers </span><span class="cov8" title="1">{
                         onOff := "ON"
-                        if !layer.IsOn </span><span class="cov0" title="0">{
+                        if !layer.IsOn </span><span class="cov8" title="1">{
                                 onOff = "OFF"
                         }</span>
-                        <span class="cov0" title="0">frozen := ""
-                        if layer.IsFrozen </span><span class="cov0" title="0">{
+                        <span class="cov8" title="1">frozen := ""
+                        if layer.IsFrozen </span><span class="cov8" title="1">{
                                 frozen = " (FROZEN)"
                         }</span>
 
-                        <span class="cov0" title="0">fmt.Printf("\nLayer: %s\n", layer.Name)
+                        <span class="cov8" title="1">fmt.Printf("\nLayer: %s\n", layer.Name)
                         fmt.Printf("  Color: %d, Line Type: %s, %s%s\n", layer.Color, layer.LineType, onOff, frozen)</span>
                 }
 
                 <span class="cov8" title="1">return nil</span>
         }
 
-        <span class="cov0" title="0">return fmt.Errorf("unknown command: %s. Use 'extract' or 'tui'", command)
+        <span class="cov8" title="1">return fmt.Errorf("unknown command: %s. Use 'extract' or 'tui'", command)
 
         // No duplicate code here
 
@@ -198,7 +217,7 @@ func Execute() error <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file1" style="display: none">package cmd
+		<pre class="file" id="file2" style="display: none">package cmd
 
 import (
         "flag"
@@ -310,7 +329,7 @@ func ExecuteTUI() error <span class="cov0" title="0">{
 }
 </pre>
 		
-		<pre class="file" id="file2" style="display: none">package main
+		<pre class="file" id="file3" style="display: none">package main
 
 import (
         "log"
@@ -331,7 +350,7 @@ func main() <span class="cov0" title="0">{
 }
 </pre>
 		
-		<pre class="file" id="file3" style="display: none">package config
+		<pre class="file" id="file4" style="display: none">package config
 
 import (
         "os"
@@ -391,7 +410,7 @@ func (c *AppConfig) Validate() error <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file4" style="display: none">// Package converter provides functionality to convert DWG files to DXF format
+		<pre class="file" id="file5" style="display: none">// Package converter provides functionality to convert DWG files to DXF format
 // using the ODA File Converter.
 package converter
 
@@ -501,7 +520,7 @@ func (c *odaconverter) ConvertToDXF(dwgPath, outputDir string) (string, error) <
 }
 </pre>
 		
-		<pre class="file" id="file5" style="display: none">package data
+		<pre class="file" id="file6" style="display: none">package data
 
 import "fmt"
 
@@ -620,7 +639,7 @@ type ExtractedData struct {
 }
 </pre>
 		
-		<pre class="file" id="file6" style="display: none">package dxfparser
+		<pre class="file" id="file7" style="display: none">package dxfparser
 
 import (
         "fmt"
@@ -690,7 +709,7 @@ func (p *Parser) ParseDXF(filePath string) (*data.ExtractedData, error) <span cl
 }
 </pre>
 		
-		<pre class="file" id="file7" style="display: none">package tui
+		<pre class="file" id="file8" style="display: none">package tui
 
 import (
         "github.com/gdamore/tcell/v2"
@@ -821,7 +840,7 @@ func (a *App) GetLayout() *tview.Pages <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file8" style="display: none">package tui
+		<pre class="file" id="file9" style="display: none">package tui
 
 import (
         "fmt"
@@ -953,7 +972,7 @@ func (v *DXFView) showLayersView() <span class="cov8" title="1">{
 
 // showLayerDetails shows the details for a specific layer
 func (v *DXFView) showLayerDetails(layerIndex int) <span class="cov8" title="1">{
-        if layerIndex &lt; 0 || layerIndex &gt;= len(v.data.Layers) </span><span class="cov0" title="0">{
+        if layerIndex &lt; 0 || layerIndex &gt;= len(v.data.Layers) </span><span class="cov8" title="1">{
                 return
         }</span>
 
@@ -979,7 +998,40 @@ func (v *DXFView) showLayerDetails(layerIndex int) <span class="cov8" title="1">
                                 fmt.Sprintf("Layer: %s, Color: %d", e.Layer, e.Color),
                                 0, nil)
                         entityCount++</span>
-                        // Add cases for other entity types as needed
+                case *data.CircleInfo:<span class="cov8" title="1">
+                        v.entityList.AddItem(
+                                fmt.Sprintf("Circle center:(%.1f,%.1f) radius:%.1f",
+                                        e.Center.X, e.Center.Y, e.Radius),
+                                fmt.Sprintf("Layer: %s, Color: %d", e.Layer, e.Color),
+                                0, nil)
+                        entityCount++</span>
+                case *data.TextInfo:<span class="cov8" title="1">
+                        v.entityList.AddItem(
+                                fmt.Sprintf("Text: %s at (%.1f,%.1f)",
+                                        e.Value, e.InsertionPoint.X, e.InsertionPoint.Y),
+                                fmt.Sprintf("Layer: %s, Height: %.1f", e.Layer, e.Height),
+                                0, nil)
+                        entityCount++</span>
+                case *data.PolylineInfo:<span class="cov0" title="0">
+                        v.entityList.AddItem(
+                                fmt.Sprintf("Polyline with %d points", len(e.Points)),
+                                fmt.Sprintf("Layer: %s, Color: %d, Closed: %v", e.Layer, e.Color, e.IsClosed),
+                                0, nil)
+                        entityCount++</span>
+                case *data.BlockInfo:<span class="cov0" title="0">
+                        v.entityList.AddItem(
+                                fmt.Sprintf("Block: %s at (%.1f,%.1f)",
+                                        e.Name, e.InsertionPoint.X, e.InsertionPoint.Y),
+                                fmt.Sprintf("Layer: %s, Rotation: %.1f", e.Layer, e.Rotation),
+                                0, nil)
+                        entityCount++</span>
+                default:<span class="cov0" title="0">
+                        // Handle any other entity types
+                        v.entityList.AddItem(
+                                fmt.Sprintf("Entity: %T", entity),
+                                fmt.Sprintf("Layer: %s", entity.GetLayer()),
+                                0, nil)
+                        entityCount++</span>
                 }
         }
 
@@ -1087,7 +1139,7 @@ func (v *DXFView) SetLayersSelectedFunc(handler func(index int, name string, sec
 
 // ToggleLayerVisibility toggles the visibility (IsOn) of the layer at the given visible index.
 func (v *DXFView) ToggleLayerVisibility(visibleIndex int) <span class="cov8" title="1">{
-        if v.data == nil || v.layers.GetItemCount() == 0 || visibleIndex &lt; 0 || visibleIndex &gt;= v.layers.GetItemCount() </span><span class="cov0" title="0">{
+        if v.data == nil || v.layers.GetItemCount() == 0 || visibleIndex &lt; 0 || visibleIndex &gt;= v.layers.GetItemCount() </span><span class="cov8" title="1">{
                 return
         }</span>
         // Find the actual layer index in v.data.Layers by matching name
@@ -1121,7 +1173,7 @@ func (v *DXFView) ToggleLayerVisibility(visibleIndex int) <span class="cov8" tit
 // - "frozen:true" or "frozen:false" to filter by frozen status
 // - An empty string to clear all filters
 func (v *DXFView) FilterLayers(query string) <span class="cov8" title="1">{
-        if v.data == nil </span><span class="cov0" title="0">{
+        if v.data == nil </span><span class="cov8" title="1">{
                 return
         }</span>
 
@@ -1195,12 +1247,12 @@ func (v *DXFView) FilterLayers(query string) <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file9" style="display: none">package tui
+		<pre class="file" id="file10" style="display: none">package tui
 
 import "github.com/rivo/tview"
 
 // NewStatusView creates a simple TextView for status/progress/error display
-func NewStatusView() *tview.TextView <span class="cov0" title="0">{
+func NewStatusView() *tview.TextView <span class="cov8" title="1">{
         view := tview.NewTextView()
         view.SetDynamicColors(true)
         view.SetTextAlign(tview.AlignCenter)

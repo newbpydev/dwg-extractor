@@ -7,11 +7,10 @@ import (
 	"path/filepath"
 
 	"github.com/remym/go-dwg-extractor/pkg/config"
-	"github.com/remym/go-dwg-extractor/pkg/dxfparser"
 )
 
 var (
-	rootCmd  string
+	rootCmd   string
 	outputDir string
 	cfg       *config.AppConfig
 )
@@ -74,7 +73,7 @@ func Execute() error {
 		}
 
 		// Parse the DXF file
-		var dxfParser dxfparser.ParserInterface = dxfparser.NewParser()
+		dxfParser := newParser()
 		dxfData, err := dxfParser.ParseDXF(dxfFile)
 		if err != nil {
 			return fmt.Errorf("failed to parse DXF file: %w", err)

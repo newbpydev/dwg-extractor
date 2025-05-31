@@ -326,3 +326,103 @@ func TestFilterLayers(t *testing.T) {
 		}
 	})
 }
+
+// TestToggleLayerVisibility_EdgeCases tests edge cases for ToggleLayerVisibility
+func TestToggleLayerVisibility_EdgeCases(t *testing.T) {
+	app := SetupTestApp(t)
+	view := NewDXFView(app)
+
+	// Test with nil data
+	t.Run("nil data", func(t *testing.T) {
+		view.data = nil
+		view.ToggleLayerVisibility(0) // Should not panic
+	})
+
+	// Test with empty layers
+	t.Run("empty layers", func(t *testing.T) {
+		view.data = &data.ExtractedData{Layers: []data.LayerInfo{}}
+		view.ToggleLayerVisibility(0) // Should not panic
+	})
+
+	// Test with invalid index
+	t.Run("invalid index", func(t *testing.T) {
+		testData := &data.ExtractedData{
+			Layers: []data.LayerInfo{
+				{Name: "Layer1", IsOn: true, IsFrozen: false, Color: 1},
+			},
+		}
+		view.Update(testData)
+		view.ToggleLayerVisibility(-1) // Should not panic
+		view.ToggleLayerVisibility(10) // Should not panic
+	})
+}
+
+// TestShowLayerDetails_WithDifferentEntities tests showing layer details with different entity types
+func TestShowLayerDetails_WithDifferentEntities(t *testing.T) {
+	app := SetupTestApp(t)
+	view := NewDXFView(app)
+
+	circle1 := &data.CircleInfo{
+		Center: data.Point{X: 5, Y: 5},
+		Radius: 2.5,
+		Layer:  "Layer1",
+		Color:  1,
+	}
+
+	text1 := &data.TextInfo{
+		InsertionPoint: data.Point{X: 10, Y: 10},
+		Value:          "Sample Text",
+		Height:         1.0,
+		Layer:          "Layer1",
+	}
+
+	testData := &data.ExtractedData{
+		DXFVersion: "R2020",
+		Layers: []data.LayerInfo{
+			{
+				Name:     "Layer1",
+				IsOn:     true,
+				IsFrozen: false,
+				Color:    1,
+				Entities: []data.Entity{circle1, text1},
+			},
+		},
+	}
+
+	view.Update(testData)
+	view.showLayerDetails(0)
+
+	// Verify the text view contains layer information
+	text := view.textView.GetText(true)
+	assert.Contains(t, text, "Layer: Layer1", "Expected layer details to be shown")
+	assert.Contains(t, text, "Entities: 2", "Expected entity count to be shown")
+}
+
+// TestFilterLayers_WithNilData tests FilterLayers with nil data
+func TestFilterLayers_WithNilData(t *testing.T) {
+	app := SetupTestApp(t)
+	view := NewDXFView(app)
+
+	// Test with nil data
+	view.data = nil
+	view.FilterLayers("test") // Should not panic
+}
+
+// TestShowLayerDetails_InvalidIndex tests showLayerDetails with invalid indices
+func TestShowLayerDetails_InvalidIndex(t *testing.T) {
+	app := SetupTestApp(t)
+	view := NewDXFView(app)
+
+	testData := &data.ExtractedData{
+		DXFVersion: "R2020",
+		Layers: []data.LayerInfo{
+			{Name: "Layer1", IsOn: true, IsFrozen: false, Color: 1},
+		},
+	}
+
+	view.Update(testData)
+
+	// Test with invalid indices
+	view.showLayerDetails(-1) // Should not panic
+	view.showLayerDetails(10) // Should not panic
+}
