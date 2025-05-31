@@ -4,7 +4,9 @@ go 1.24.1
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/flywave/go-dxf v0.0.0-20240129235141-dbd645b19948 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/yofu/dxf v0.0.0-20250421012503-acd811fa0dd4 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
