@@ -9,6 +9,8 @@ import (
 
 	"github.com/remym/go-dwg-extractor/pkg/converter"
 	"github.com/remym/go-dwg-extractor/pkg/config"
+	"github.com/remym/go-dwg-extractor/pkg/dxfparser"
+	"github.com/remym/go-dwg-extractor/pkg/data"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,8 +20,22 @@ type MockDWGConverter struct {
 	ConvertToDXFFunc func(dwgPath, outputDir string) (string, error)
 }
 
+// MockParser is a mock implementation of the Parser interface
+type MockParser struct {
+	ParseDXFFunc func(dxfPath string) (*data.ExtractedData, error)
+}
+
 func (m *MockDWGConverter) ConvertToDXF(dwgPath, outputDir string) (string, error) {
 	return m.ConvertToDXFFunc(dwgPath, outputDir)
+}
+
+func (m *MockParser) ParseDXF(dxfPath string) (*data.ExtractedData, error) {
+	return m.ParseDXFFunc(dxfPath)
+}
+
+// Mock function to create a parser
+var newParser = func() dxfparser.ParserInterface {
+	return dxfparser.NewParser()
 }
 
 func TestRootCommand(t *testing.T) {
@@ -27,10 +43,12 @@ func TestRootCommand(t *testing.T) {
 	oldArgs := os.Args
 	oldEnv := os.Getenv("ODA_CONVERTER_PATH")
 	oldNewDWGConverter := newDWGConverter
+	oldNewParser := newParser
 	defer func() {
 		os.Args = oldArgs
 		os.Setenv("ODA_CONVERTER_PATH", oldEnv)
 		newDWGConverter = oldNewDWGConverter
+		newParser = oldNewParser
 	}()
 
 	// Create a temporary directory for test files
@@ -70,7 +88,22 @@ func TestRootCommand(t *testing.T) {
 				newDWGConverter = func(path string) (converter.DWGConverter, error) {
 					mock := &MockDWGConverter{
 						ConvertToDXFFunc: func(dwgPath, outputDir string) (string, error) {
-							return filepath.Join(filepath.Dir(dwgPath), filepath.Base(dwgPath)+".dxf"), nil
+							dxfPath := filepath.Join(filepath.Dir(dwgPath), filepath.Base(dwgPath)+".dxf")
+							// Create a dummy DXF file with layer information
+							dxfContent := `0
+SECTION
+2
+HEADER
+9
+$ACADVER
+1
+AC1015
+0
+ENDSEC
+0
+EOF`
+							_ = os.WriteFile(dxfPath, []byte(dxfContent), 0644)
+							return dxfPath, nil
 						},
 					}
 					return mock, nil
@@ -85,7 +118,22 @@ func TestRootCommand(t *testing.T) {
 				newDWGConverter = func(path string) (converter.DWGConverter, error) {
 					mock := &MockDWGConverter{
 						ConvertToDXFFunc: func(dwgPath, outputDir string) (string, error) {
-							return filepath.Join(outputDir, filepath.Base(dwgPath)+".dxf"), nil
+							dxfPath := filepath.Join(outputDir, filepath.Base(dwgPath)+".dxf")
+							// Create a dummy DXF file with layer information
+							dxfContent := `0
+SECTION
+2
+HEADER
+9
+$ACADVER
+1
+AC1015
+0
+ENDSEC
+0
+EOF`
+							_ = os.WriteFile(dxfPath, []byte(dxfContent), 0644)
+							return dxfPath, nil
 						},
 					}
 					return mock, nil

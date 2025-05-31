@@ -8,6 +8,12 @@ import (
 	"github.com/remym/go-dwg-extractor/pkg/data"
 )
 
+// ParserInterface defines the contract for DXF parsing
+//go:generate mockgen -destination=../mocks/mock_parser.go -package=mocks github.com/remym/go-dwg-extractor/pkg/dxfparser ParserInterface
+type ParserInterface interface {
+	ParseDXF(filePath string) (*data.ExtractedData, error)
+}
+
 // Parser handles the parsing of DXF files.
 type Parser struct {
 	// Add any parser configuration or state here
@@ -17,6 +23,9 @@ type Parser struct {
 func NewParser() *Parser {
 	return &Parser{}
 }
+
+// Ensure Parser implements ParserInterface
+var _ ParserInterface = (*Parser)(nil)
 
 // ParseDXF parses a DXF file and returns the extracted data.
 // This is a simplified implementation that extracts basic information.

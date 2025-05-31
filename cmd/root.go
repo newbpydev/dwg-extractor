@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/remym/go-dwg-extractor/pkg/config"
+	"github.com/remym/go-dwg-extractor/pkg/dxfparser"
 )
 
 var (
@@ -73,5 +74,27 @@ func Execute() error {
 	}
 
 	fmt.Printf("Successfully converted to DXF: %s\n", dxfPath)
+
+	// Parse the DXF file
+	var parser dxfparser.ParserInterface = dxfparser.NewParser()
+	data, err := parser.ParseDXF(dxfPath)
+	if err != nil {
+		return fmt.Errorf("failed to parse DXF file: %w", err)
+	}
+
+	// Display extracted information
+	fmt.Println("\nExtracted DXF Information:")
+	fmt.Printf("DXF Version: %s\n", data.DXFVersion)
+	fmt.Printf("Number of Layers: %d\n", len(data.Layers))
+
+	// Display layer information
+	if len(data.Layers) > 0 {
+		fmt.Println("\nLayers:")
+		for i, layer := range data.Layers {
+			fmt.Printf("  %d. %s (Color: %d, On: %v, Frozen: %v, LineType: %s)\n",
+				i+1, layer.Name, layer.Color, layer.IsOn, layer.IsFrozen, layer.LineType)
+		}
+	}
+
 	return nil
 }
