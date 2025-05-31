@@ -76,8 +76,8 @@ func NewDXFView(app *tview.Application) *DXFView {
 	view.navigator = NewTUINavigator(app, searchInput, layers, entityList)
 	view.layersNavigator = NewTUIListNavigator(layers)
 	view.entitiesNavigator = NewTUIListNavigator(entityList)
-	view.categorySelector = NewTUICategorySelector(view)
-	view.itemSelector = NewTUIItemSelector(view)
+	view.categorySelector = NewEnhancedCategorySelector(view)
+	view.itemSelector = NewEnhancedItemSelector(view)
 	view.breadcrumbNavigator = NewTUIBreadcrumbNavigator()
 
 	return view

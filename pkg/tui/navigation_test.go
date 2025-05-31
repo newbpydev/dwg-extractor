@@ -196,7 +196,7 @@ func TestCategorySelection_UpdatesViews(t *testing.T) {
 			name:               "Select layer shows entities",
 			categoryType:       "layer",
 			categoryIndex:      0,
-			expectedItemCount:  3, // lines + circles + texts
+			expectedItemCount:  5, // lines + circles + texts + blocks (line1, circle1, text1, block1, block2)
 			expectedDetailText: "Layer: Layer1",
 		},
 		{
@@ -417,12 +417,34 @@ func createTestDataWithCategories() *data.ExtractedData {
 	circle1 := &data.CircleInfo{Center: data.Point{X: 5, Y: 5}, Radius: 2.5, Layer: "Layer1", Color: 1}
 	text1 := &data.TextInfo{Value: "Sample Text", InsertionPoint: data.Point{X: 1, Y: 1}, Height: 12.0, Layer: "Layer1"}
 
+	// Add blocks to match the test expectations (expected 2 blocks)
+	block1 := &data.BlockInfo{
+		Name:           "TestBlock1",
+		InsertionPoint: data.Point{X: 0, Y: 0},
+		Rotation:       0.0,
+		Scale:          data.Point{X: 1, Y: 1},
+		Layer:          "Layer1",
+		Attributes: []data.AttributeInfo{
+			{Tag: "ATTR1", Value: "Value1"},
+		},
+	}
+	block2 := &data.BlockInfo{
+		Name:           "TestBlock2",
+		InsertionPoint: data.Point{X: 5, Y: 5},
+		Rotation:       45.0,
+		Scale:          data.Point{X: 2, Y: 2},
+		Layer:          "Layer1",
+		Attributes: []data.AttributeInfo{
+			{Tag: "ATTR2", Value: "Value2"},
+		},
+	}
+
 	return &data.ExtractedData{
 		DXFVersion: "R2020",
 		Layers: []data.LayerInfo{
 			{
 				Name: "Layer1", IsOn: true, IsFrozen: false, Color: 1,
-				Entities: []data.Entity{line1, circle1, text1},
+				Entities: []data.Entity{line1, circle1, text1, block1, block2},
 			},
 		},
 	}

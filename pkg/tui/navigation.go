@@ -324,49 +324,6 @@ func (ln *TUIListNavigator) moveToLast() bool {
 	return ln.SetCurrentIndex(itemCount-1) == nil
 }
 
-// TUICategorySelector is the concrete implementation of CategorySelector
-type TUICategorySelector struct {
-	view         *DXFView
-	currentType  string
-	currentIndex int
-}
-
-// NewTUICategorySelector creates a new category selector
-func NewTUICategorySelector(view *DXFView) *TUICategorySelector {
-	return &TUICategorySelector{
-		view: view,
-	}
-}
-
-// SelectCategory selects a category and updates views
-func (cs *TUICategorySelector) SelectCategory(categoryType string, index int) error {
-	cs.currentType = categoryType
-	cs.currentIndex = index
-
-	// For now, this is a minimal implementation
-	// TODO: Implement actual category selection logic
-	return nil
-}
-
-// TUIItemSelector is the concrete implementation of ItemSelector
-type TUIItemSelector struct {
-	view *DXFView
-}
-
-// NewTUIItemSelector creates a new item selector
-func NewTUIItemSelector(view *DXFView) *TUIItemSelector {
-	return &TUIItemSelector{
-		view: view,
-	}
-}
-
-// SelectItem selects an item and updates the details pane
-func (is *TUIItemSelector) SelectItem(itemType string, index int) error {
-	// For now, this is a minimal implementation
-	// TODO: Implement actual item selection logic
-	return nil
-}
-
 // TUIBreadcrumbNavigator is the concrete implementation of BreadcrumbNavigator
 type TUIBreadcrumbNavigator struct {
 	path       []string
