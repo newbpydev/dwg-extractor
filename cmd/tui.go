@@ -3,6 +3,7 @@ package cmd
 import (
 	"flag"
 	"os"
+	"time"
 
 	"github.com/remym/go-dwg-extractor/pkg/config"
 	"github.com/remym/go-dwg-extractor/pkg/converter"
@@ -23,9 +24,13 @@ func init() {
 func RunTUI(args []string) error {
 	app := tui.NewApp()
 
-	if args != nil && len(args) > 0 {
-		// Process DWG file in background
-		go func() {
+	// Start the app and handle initialization after event loop starts
+	go func() {
+		// Wait a moment for the app to start
+		time.Sleep(100 * time.Millisecond)
+
+		if args != nil && len(args) > 0 {
+			// Process DWG file
 			// Load configuration
 			cfg, err := config.LoadConfig()
 			if err != nil {
@@ -61,21 +66,21 @@ func RunTUI(args []string) error {
 			// Update the UI with the parsed data
 			app.ShowStatus("Conversion and parsing successful!")
 			app.UpdateDXFData(dxfData)
-		}()
-	} else {
-		// Use sample data if no file is provided
-		dxfData := &data.ExtractedData{
-			DXFVersion: "R2020 (Sample Data)",
-			Layers: []data.LayerInfo{
-				{Name: "0", IsOn: true, IsFrozen: false, Color: 7, LineType: "CONTINUOUS"},
-				{Name: "Walls", IsOn: true, IsFrozen: false, Color: 1, LineType: "CONTINUOUS"},
-				{Name: "Doors", IsOn: true, IsFrozen: false, Color: 2, LineType: "DASHED"},
-				{Name: "Windows", IsOn: true, IsFrozen: true, Color: 3, LineType: "HIDDEN"},
-			},
+		} else {
+			// Use sample data if no file is provided
+			dxfData := &data.ExtractedData{
+				DXFVersion: "R2020 (Sample Data)",
+				Layers: []data.LayerInfo{
+					{Name: "0", IsOn: true, IsFrozen: false, Color: 7, LineType: "CONTINUOUS"},
+					{Name: "Walls", IsOn: true, IsFrozen: false, Color: 1, LineType: "CONTINUOUS"},
+					{Name: "Doors", IsOn: true, IsFrozen: false, Color: 2, LineType: "DASHED"},
+					{Name: "Windows", IsOn: true, IsFrozen: true, Color: 3, LineType: "HIDDEN"},
+				},
+			}
+			app.ShowStatus("No DWG file provided. Using sample data.")
+			app.UpdateDXFData(dxfData)
 		}
-		app.ShowStatus("No DWG file provided. Using sample data.")
-		app.UpdateDXFData(dxfData)
-	}
+	}()
 
 	return app.Run()
 }
