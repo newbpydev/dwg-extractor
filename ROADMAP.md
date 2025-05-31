@@ -110,9 +110,11 @@
 
 **Tasks:**
 
-1.  **[ ] Task 2.1: Define Converter Interface and Struct**
-    * In `pkg/converter/converter.go`, define an interface (e.g., `DWGConverter`) with a method like `ConvertToDXF(dwgPath string, outputDir string) (string, error)`.
-    * Implement this interface with a struct that holds the ODA converter path.
+1.  **[x] Task 2.1: Define Converter Interface and Struct**
+    * [x] Created `DWGConverter` interface in `pkg/converter/converter.go` with `ConvertToDXF` method.
+    * [x] Implemented `odaconverter` struct that holds the ODA converter path.
+    * [x] Added `NewDWGConverter` constructor with input validation.
+    * [x] Added comprehensive tests for the interface and implementation.
 
 2.  **[ ] Task 2.2: Implement Conversion Logic**
     * **TDD:**
