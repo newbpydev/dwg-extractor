@@ -4,85 +4,145 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/remym/go-dwg-extractor/pkg/converter"
 	"github.com/remym/go-dwg-extractor/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+// MockDWGConverter is a mock implementation of the DWGConverter interface
+type MockDWGConverter struct {
+	ConvertToDXFFunc func(dwgPath, outputDir string) (string, error)
+}
+
+func (m *MockDWGConverter) ConvertToDXF(dwgPath, outputDir string) (string, error) {
+	return m.ConvertToDXFFunc(dwgPath, outputDir)
+}
+
 func TestRootCommand(t *testing.T) {
 	// Save original command-line arguments and environment variables
 	oldArgs := os.Args
 	oldEnv := os.Getenv("ODA_CONVERTER_PATH")
-	defer func() { 
-		os.Args = oldArgs 
+	oldNewDWGConverter := newDWGConverter
+	defer func() {
+		os.Args = oldArgs
 		os.Setenv("ODA_CONVERTER_PATH", oldEnv)
+		newDWGConverter = oldNewDWGConverter
 	}()
 
-	// Create a temporary file for testing ODA converter
-	tempConverter, err := ioutil.TempFile("", "test-converter-*.exe")
-	require.NoError(t, err, "Failed to create temp converter file")
-	tempConverterPath := tempConverter.Name()
-	tempConverter.Close()
-	defer os.Remove(tempConverterPath)
+	// Create a temporary directory for test files
+	tempDir, err := ioutil.TempDir("", "test-root-*")
+	require.NoError(t, err, "Failed to create temp directory")
+	defer os.RemoveAll(tempDir)
 
-	// Set the ODA_CONVERTER_PATH environment variable for testing
-	os.Setenv("ODA_CONVERTER_PATH", tempConverterPath)
+	// Create a test DWG file
+	testDWGPath := filepath.Join(tempDir, "test.dwg")
+	err = os.WriteFile(testDWGPath, []byte("test content"), 0644)
+	require.NoError(t, err, "Failed to create test DWG file")
 
+	// Create a test output directory
+	outputDir := filepath.Join(tempDir, "output")
+	err = os.MkdirAll(outputDir, 0755)
+	require.NoError(t, err, "Failed to create output directory")
+
+	// Set up test cases
 	tests := []struct {
 		name        string
 		args        []string
-		envVars     map[string]string
+		setup       func()
 		wantErr     bool
 		errContains string
 	}{
 		{
 			name:        "no arguments",
 			args:        []string{"cmd"},
+			setup:       func() { newDWGConverter = converter.NewDWGConverter },
 			wantErr:     true,
 			errContains: "no DWG file specified",
 		},
 		{
-			name:    "with file argument",
-			args:    []string{"cmd", "-file"},
+			name: "successful conversion with default output",
+			args: []string{"cmd", "-file", testDWGPath},
+			setup: func() {
+				newDWGConverter = func(path string) (converter.DWGConverter, error) {
+					mock := &MockDWGConverter{
+						ConvertToDXFFunc: func(dwgPath, outputDir string) (string, error) {
+							return filepath.Join(filepath.Dir(dwgPath), filepath.Base(dwgPath)+".dxf"), nil
+						},
+					}
+					return mock, nil
+				}
+			},
 			wantErr: false,
 		},
 		{
-			name:        "non-existent file",
-			args:        []string{"cmd", "-file", "nonexistent.dwg"},
+			name: "successful conversion with custom output directory",
+			args: []string{"cmd", "-file", testDWGPath, "-output", outputDir},
+			setup: func() {
+				newDWGConverter = func(path string) (converter.DWGConverter, error) {
+					mock := &MockDWGConverter{
+						ConvertToDXFFunc: func(dwgPath, outputDir string) (string, error) {
+							return filepath.Join(outputDir, filepath.Base(dwgPath)+".dxf"), nil
+						},
+					}
+					return mock, nil
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name: "converter returns error",
+			args: []string{"cmd", "-file", testDWGPath},
+			setup: func() {
+				newDWGConverter = func(path string) (converter.DWGConverter, error) {
+					return nil, assert.AnError
+				}
+			},
 			wantErr:     true,
-			errContains: "file does not exist",
+			errContains: "failed to create DWG converter",
+		},
+		{
+			name: "conversion fails",
+			args: []string{"cmd", "-file", testDWGPath},
+			setup: func() {
+				newDWGConverter = func(path string) (converter.DWGConverter, error) {
+					mock := &MockDWGConverter{
+						ConvertToDXFFunc: func(dwgPath, outputDir string) (string, error) {
+							return "", assert.AnError
+						},
+					}
+					return mock, nil
+				}
+			},
+			wantErr:     true,
+			errContains: "conversion failed",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set up environment variables
-			for k, v := range tt.envVars {
-				os.Setenv(k, v)
-			}
+			// Reset the flag set to avoid flag redefinition errors
+			flag.CommandLine = flag.NewFlagSet(tt.args[0], flag.ExitOnError)
 
-			// Create a temporary file for testing
-			tempFile, err := ioutil.TempFile("", "testfile*.dwg")
-			require.NoError(t, err, "Failed to create temp file")
-			tempFileName := tempFile.Name()
-			tempFile.Close()
-			defer os.Remove(tempFileName)
+			// Set up the test
+			if tt.setup != nil {
+				// Save the original newDWGConverter
+				oldNewDWGConverter := newDWGConverter
+				defer func() { newDWGConverter = oldNewDWGConverter }()
 
-			// Update args with the temp file path
-			args := make([]string, len(tt.args))
-			copy(args, tt.args)
-			if len(args) > 1 && args[1] == "-file" && len(args) == 2 {
-				args = append(args, tempFileName)
+				tt.setup()
 			}
 
 			// Set command-line arguments for the test
-			os.Args = args
-			// Reset the flag set to avoid flag redefinition errors
-			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+			os.Args = tt.args
 
+			// Execute the command
 			execErr := Execute()
+
+			// Verify the results
 			if tt.wantErr {
 				assert.Error(t, execErr)
 				if tt.errContains != "" {
@@ -96,9 +156,22 @@ func TestRootCommand(t *testing.T) {
 }
 
 func TestConfigLoading(t *testing.T) {
-	// Save original environment variable
+	// Save original environment variable and function
 	oldEnv := os.Getenv("ODA_CONVERTER_PATH")
-	defer os.Setenv("ODA_CONVERTER_PATH", oldEnv)
+	oldNewDWGConverter := newDWGConverter
+	defer func() {
+		os.Setenv("ODA_CONVERTER_PATH", oldEnv)
+		newDWGConverter = oldNewDWGConverter
+	}()
+
+	// Mock the converter to avoid actual execution
+	newDWGConverter = func(path string) (converter.DWGConverter, error) {
+		return &MockDWGConverter{
+			ConvertToDXFFunc: func(dwgPath, outputDir string) (string, error) {
+				return "test.dxf", nil
+			},
+		}, nil
+	}
 
 	// Create a temporary file for testing
 	tempFile, err := ioutil.TempFile("", "test-converter-*.exe")
