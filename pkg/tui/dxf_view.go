@@ -19,6 +19,14 @@ type DXFView struct {
 	searchInput       *tview.InputField
 	data              *data.ExtractedData
 	currentLayerIndex int
+
+	// Navigation components
+	navigator           Navigator
+	layersNavigator     ListNavigator
+	entitiesNavigator   ListNavigator
+	categorySelector    CategorySelector
+	itemSelector        ItemSelector
+	breadcrumbNavigator BreadcrumbNavigator
 }
 
 // NewDXFView creates a new DXF view
@@ -63,6 +71,14 @@ func NewDXFView(app *tview.Application) *DXFView {
 
 	// Set up keyboard navigation
 	view.setupKeybindings()
+
+	// Initialize navigation components
+	view.navigator = NewTUINavigator(app, searchInput, layers, entityList)
+	view.layersNavigator = NewTUIListNavigator(layers)
+	view.entitiesNavigator = NewTUIListNavigator(entityList)
+	view.categorySelector = NewTUICategorySelector(view)
+	view.itemSelector = NewTUIItemSelector(view)
+	view.breadcrumbNavigator = NewTUIBreadcrumbNavigator()
 
 	return view
 }
@@ -402,4 +418,55 @@ func (v *DXFView) FilterLayers(query string) {
 
 	// Restore scroll position if possible
 	v.layers.SetOffset(0, currentOffset)
+}
+
+// Navigation Getter Methods
+
+// GetNavigator returns the main navigator for pane switching
+func (v *DXFView) GetNavigator() Navigator {
+	return v.navigator
+}
+
+// GetListNavigator returns the list navigator for the specified list type
+func (v *DXFView) GetListNavigator(listType string) ListNavigator {
+	switch listType {
+	case "layers":
+		return v.layersNavigator
+	case "entities":
+		return v.entitiesNavigator
+	default:
+		return v.layersNavigator // Default to layers
+	}
+}
+
+// GetCategorySelector returns the category selector
+func (v *DXFView) GetCategorySelector() CategorySelector {
+	return v.categorySelector
+}
+
+// GetCurrentItemList returns the currently active item list
+func (v *DXFView) GetCurrentItemList() *tview.List {
+	// For now, return the layers list as the default
+	// TODO: Implement logic to determine the current active list
+	return v.layers
+}
+
+// GetDetailsView returns the details text view
+func (v *DXFView) GetDetailsView() *tview.TextView {
+	return v.textView
+}
+
+// GetItemSelector returns the item selector
+func (v *DXFView) GetItemSelector() ItemSelector {
+	return v.itemSelector
+}
+
+// GetDetailsPane returns the details pane (same as details view for now)
+func (v *DXFView) GetDetailsPane() *tview.TextView {
+	return v.textView
+}
+
+// GetBreadcrumbNavigator returns the breadcrumb navigator
+func (v *DXFView) GetBreadcrumbNavigator() BreadcrumbNavigator {
+	return v.breadcrumbNavigator
 }
