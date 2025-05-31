@@ -46,8 +46,8 @@ func (a *App) UpdateDXFData(data *data.ExtractedData) {
 
 // setupLayout sets up the main application layout
 func (a *App) setupLayout() {
-	// Create the DXF view
-	a.dxfView = NewDXFView()
+	// Create the DXF view with the application instance
+	a.dxfView = NewDXFView(a.app)
 
 	// Create a flex layout that will contain our main content
 	flex := tview.NewFlex().

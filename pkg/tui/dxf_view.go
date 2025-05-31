@@ -2,20 +2,28 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/remym/go-dwg-extractor/pkg/data"
 	"github.com/rivo/tview"
 )
 
 // DXFView handles the display of DXF data
 type DXFView struct {
-	textView *tview.TextView
-	layers   *tview.List
+	app         *tview.Application
+	pages       *tview.Pages
+	textView    *tview.TextView
+	layers      *tview.List
+	entityList  *tview.List
+	searchInput *tview.InputField
+	data        *data.ExtractedData
+	currentLayerIndex int
 }
 
 // NewDXFView creates a new DXF view
-func NewDXFView() *DXFView {
-	// Create the main text view
+func NewDXFView(app *tview.Application) *DXFView {
+	// Create the main text view for layer details
 	textView := tview.NewTextView().
 		SetDynamicColors(true).
 		SetRegions(true).
@@ -25,14 +33,45 @@ func NewDXFView() *DXFView {
 	layers := tview.NewList()
 	layers.SetBorder(true).SetTitle("Layers")
 
-	return &DXFView{
-		textView: textView,
-		layers:   layers,
+	// Create the entity list
+	entityList := tview.NewList()
+	entityList.SetBorder(true).SetTitle("Entities")
+
+	// Create search input
+	searchInput := tview.NewInputField().
+		SetLabel("Search: ").
+		SetFieldWidth(30).
+		SetPlaceholder("Type to filter layers... (Space/t: toggle visibility)")
+
+	// Create pages container
+	pages := tview.NewPages()
+
+	view := &DXFView{
+		app:         app,
+		pages:       pages,
+		textView:    textView,
+		layers:      layers,
+		entityList:  entityList,
+		searchInput: searchInput,
+		currentLayerIndex: -1,
 	}
+
+	// Set up search input handler
+	searchInput.SetChangedFunc(func(text string) {
+		view.FilterLayers(text)
+	})
+
+	// Set up keyboard navigation
+	view.setupKeybindings()
+
+	return view
 }
 
 // Update updates the view with the given DXF data
 func (v *DXFView) Update(data *data.ExtractedData) {
+	v.data = data
+	v.currentLayerIndex = -1
+	
 	// Clear the current content
 	v.textView.Clear()
 
@@ -43,8 +82,16 @@ func (v *DXFView) Update(data *data.ExtractedData) {
 	fmt.Fprintf(v.textView, "[green]Layers:[-] %d\n\n", len(data.Layers))
 
 	// Update layers list
+	v.updateLayersList()
+	
+	// Show the layers view
+	v.showLayersView()
+}
+
+// updateLayersList updates the layers list with current data
+func (v *DXFView) updateLayersList() {
 	v.layers.Clear()
-	for _, layer := range data.Layers {
+	for i, layer := range v.data.Layers {
 		// Create a string representation of the layer
 		onOff := "ON"
 		if !layer.IsOn {
@@ -57,22 +104,152 @@ func (v *DXFView) Update(data *data.ExtractedData) {
 		layerText := fmt.Sprintf("%s (Color: %d, %s%s)",
 			layer.Name, layer.Color, onOff, frozen)
 
-		v.layers.AddItem(layerText, "", 0, nil)
+		// Store the layer index as a reference
+		index := i
+		v.layers.AddItem(layerText, "", 0, func() {
+			v.showLayerDetails(index)
+		})
 	}
 }
 
-// GetLayout returns a layout containing the DXF view and layers list
-func (v *DXFView) GetLayout() *tview.Flex {
-	// Create a flex layout with the layers list on the left and the main view on the right
-	flex := tview.NewFlex()
+// showLayersView shows the layers list view
+func (v *DXFView) showLayersView() {
+	// Create a flex container for the search input and layers list
+	listFlex := tview.NewFlex().SetDirection(tview.FlexRow)
+	listFlex.AddItem(v.searchInput, 1, 0, false)
+	listFlex.AddItem(v.layers, 0, 1, true)
 
-	// Add the layers list (20% width)
-	flex.AddItem(v.layers, 0, 1, false)
+	// Create the main flex container
+	flex := tview.NewFlex().SetDirection(tview.FlexRow)
+	flex.AddItem(v.textView, 0, 1, false)
+	flex.AddItem(listFlex, 0, 3, true)
 
-	// Add the main view (80% width)
-	flex.AddItem(v.textView, 0, 4, true)
+	v.pages.SwitchToPage("layers")
+	v.app.SetFocus(v.searchInput)
+}
 
-	return flex
+// showLayerDetails shows the details for a specific layer
+func (v *DXFView) showLayerDetails(layerIndex int) {
+	if layerIndex < 0 || layerIndex >= len(v.data.Layers) {
+		return
+	}
+	
+	v.currentLayerIndex = layerIndex
+	layer := v.data.Layers[layerIndex]
+	
+	// Update the entity list
+	v.entityList.Clear()
+	
+	// Add a back item
+	v.entityList.AddItem("← Back to Layers", "", 'b', func() {
+		v.showLayersView()
+	})
+	
+	// Add entities for this layer
+	entityCount := 0
+	for _, entity := range layer.Entities {
+		switch e := entity.(type) {
+		case *data.LineInfo:
+			v.entityList.AddItem(
+				fmt.Sprintf("Line (%.1f,%.1f) to (%.1f,%.1f)", 
+					e.StartPoint.X, e.StartPoint.Y, e.EndPoint.X, e.EndPoint.Y),
+				fmt.Sprintf("Layer: %s, Color: %d", e.Layer, e.Color),
+				0, nil)
+			entityCount++
+		// Add cases for other entity types as needed
+		}
+	}
+	
+	// Update the text view with layer details
+	v.textView.Clear()
+	fmt.Fprintf(v.textView, "[green]Layer:[-] %s\n", layer.Name)
+	fmt.Fprintf(v.textView, "[green]Color:[-] %d\n", layer.Color)
+	fmt.Fprintf(v.textView, "[green]Status:[-] %s\n", map[bool]string{true: "ON", false: "OFF"}[layer.IsOn])
+	fmt.Fprintf(v.textView, "[green]Frozen:[-] %v\n", layer.IsFrozen)
+	fmt.Fprintf(v.textView, "[green]Line Type:[-] %s\n", layer.LineType)
+	fmt.Fprintf(v.textView, "[green]Entities:[-] %d\n\n", entityCount)
+	
+	// Show the entities view
+	v.showEntitiesView()
+}
+
+// showEntitiesView shows the entities list view
+func (v *DXFView) showEntitiesView() {
+	// Create a flex layout with the entities list and details
+	flex := tview.NewFlex().
+		AddItem(v.entityList, 0, 1, true).
+		AddItem(v.textView, 0, 1, false)
+	
+	// Add or update the entities page
+	v.pages.AddAndSwitchToPage("entities", flex, true)
+}
+
+// setupKeybindings sets up keyboard shortcuts
+func (v *DXFView) setupKeybindings() {
+	// Handle key events for the search input
+	v.searchInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyDown, tcell.KeyTab:
+			// Move focus to the layers list
+			v.app.SetFocus(v.layers)
+			return nil
+		case tcell.KeyEsc:
+			// Clear search and reset focus
+			v.searchInput.SetText("")
+			v.app.SetFocus(v.layers)
+			return nil
+		}
+		return event
+	})
+
+	// Handle key events for the layers list
+	v.layers.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEnter:
+			if v.layers.GetItemCount() > 0 {
+				index := v.layers.GetCurrentItem()
+				v.showLayerDetails(index)
+			}
+			return nil
+		case tcell.KeyEsc, tcell.KeyBackspace, tcell.KeyBackspace2:
+			// Move focus back to search
+			v.app.SetFocus(v.searchInput)
+			return nil
+		case tcell.KeyRune:
+			// Space or 't' toggles layer visibility
+			if event.Rune() == ' ' || event.Rune() == 't' || event.Rune() == 'T' {
+				idx := v.layers.GetCurrentItem()
+				v.ToggleLayerVisibility(idx)
+				return nil
+			}
+			// If a letter or number is pressed, focus on search and type
+			if (event.Rune() >= 'a' && event.Rune() <= 'z') || 
+			   (event.Rune() >= 'A' && event.Rune() <= 'Z') ||
+			   (event.Rune() >= '0' && event.Rune() <= '9') ||
+			   event.Rune() == ' ' || event.Rune() == ':' {
+				v.app.SetFocus(v.searchInput)
+				// Append the pressed key to the search input
+				v.searchInput.SetText(v.searchInput.GetText() + string(event.Rune()))
+				return nil
+			}
+		}
+		return event
+	})
+
+	// Handle key events for the entity list
+	v.entityList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEsc, tcell.KeyBackspace, tcell.KeyBackspace2:
+			v.showLayersView()
+			return nil
+		}
+		return event
+	})
+}
+
+// GetLayout returns the pages container for the DXF view
+func (v *DXFView) GetLayout() *tview.Pages {
+	return v.pages
 }
 
 // SetLayersChangedFunc sets the function to be called when a layer is selected
@@ -83,4 +260,110 @@ func (v *DXFView) SetLayersChangedFunc(handler func(index int, name string, seco
 // SetLayersSelectedFunc sets the function to be called when a layer is selected
 func (v *DXFView) SetLayersSelectedFunc(handler func(index int, name string, secondaryText string, shortcut rune)) {
 	v.layers.SetSelectedFunc(handler)
+}
+
+// ToggleLayerVisibility toggles the visibility (IsOn) of the layer at the given visible index.
+func (v *DXFView) ToggleLayerVisibility(visibleIndex int) {
+	if v.data == nil || v.layers.GetItemCount() == 0 || visibleIndex < 0 || visibleIndex >= v.layers.GetItemCount() {
+		return
+	}
+	// Find the actual layer index in v.data.Layers by matching name
+	mainText, _ := v.layers.GetItemText(visibleIndex)
+	// Extract the layer name from the display string (before first ' (')
+	name := mainText
+	if idx := strings.Index(mainText, " ("); idx > 0 {
+		name = mainText[:idx]
+	}
+	for i := range v.data.Layers {
+		if v.data.Layers[i].Name == name {
+			v.data.Layers[i].IsOn = !v.data.Layers[i].IsOn
+			break
+		}
+	}
+	// Re-filter or update the list to reflect the change
+	if v.searchInput != nil && v.searchInput.GetText() != "" {
+		v.FilterLayers(v.searchInput.GetText())
+	} else {
+		v.updateLayersList()
+	}
+}
+
+// FilterLayers filters the layers list based on the provided query string.
+// The query can be:
+// - A simple string to filter by layer name (case-insensitive)
+// - "on:true" or "on:false" to filter by layer on/off status
+// - "frozen:true" or "frozen:false" to filter by frozen status
+// - An empty string to clear all filters
+func (v *DXFView) FilterLayers(query string) {
+	if v.data == nil {
+		return
+	}
+
+	// Store the current scroll position
+	_, currentOffset := v.layers.GetOffset()
+
+	// Clear the current list
+	v.layers.Clear()
+
+	// If query is empty, show all layers
+	if query == "" {
+		v.updateLayersList()
+		v.layers.SetOffset(0, currentOffset)
+		return
+	}
+
+	// Convert query to lowercase for case-insensitive comparison
+	query = strings.ToLower(query)
+
+	// Check for special filter types
+	var filterFunc func(layer data.LayerInfo) bool
+
+	switch {
+	case strings.HasPrefix(query, "on:true"):
+		filterFunc = func(layer data.LayerInfo) bool {
+			return layer.IsOn
+		}
+	case strings.HasPrefix(query, "on:false"):
+		filterFunc = func(layer data.LayerInfo) bool {
+			return !layer.IsOn
+		}
+	case strings.HasPrefix(query, "frozen:true"):
+		filterFunc = func(layer data.LayerInfo) bool {
+			return layer.IsFrozen
+		}
+	case strings.HasPrefix(query, "frozen:false"):
+		filterFunc = func(layer data.LayerInfo) bool {
+			return !layer.IsFrozen
+		}
+	default:
+		// Filter by name (case-insensitive)
+		filterFunc = func(layer data.LayerInfo) bool {
+			return strings.Contains(strings.ToLower(layer.Name), query)
+		}
+	}
+
+	// Filter and add layers
+	for i, layer := range v.data.Layers {
+		if filterFunc(layer) {
+			onOff := "ON"
+			if !layer.IsOn {
+				onOff = "OFF"
+			}
+			frozen := ""
+			if layer.IsFrozen {
+				frozen = " (FROZEN)"
+			}
+			layerText := fmt.Sprintf("%s (Color: %d, %s%s)",
+				layer.Name, layer.Color, onOff, frozen)
+
+			// Store the layer index as a reference
+			index := i
+			v.layers.AddItem(layerText, "", 0, func() {
+				v.showLayerDetails(index)
+			})
+		}
+	}
+
+	// Restore scroll position if possible
+	v.layers.SetOffset(0, currentOffset)
 }
