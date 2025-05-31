@@ -8,7 +8,6 @@ A powerful command-line tool with a Terminal User Interface (TUI) for extracting
 
 [Table of Contents](#table-of-contents)
 
-[Table of Contents](#table-of-contents)
 ## Table of Contents
 
 - [Description](#description)
@@ -152,7 +151,20 @@ make package
 make all
 ```
 
-### Using Makefile\n\nYou can also use the Makefile directly for various build tasks:\n\n```makefile\n# Available Makefile targets\nbuild:          # Build for current platform\nbuild-all:      # Build for all platforms\ntest:           # Run all tests\ntest-coverage:  # Run tests with coverage\npackage:        # Create distribution packages\nclean:          # Clean build artifacts\nhelp:           # Show available targets\n```
+### Using Makefile
+
+You can also use the Makefile directly for various build tasks:
+
+```makefile
+# Available Makefile targets
+build:          # Build for current platform
+build-all:      # Build for all platforms  
+test:           # Run all tests
+test-coverage:  # Run tests with coverage
+package:        # Create distribution packages
+clean:          # Clean build artifacts
+help:           # Show available targets
+```
 
 ### Using Build Scripts
 
