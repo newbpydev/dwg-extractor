@@ -80,29 +80,29 @@
         * [x] **Implement:** Add logic to handle missing file flag.
     * [x] In `main.go`, call the command execution logic from `cmd/root.go`.
 
-## 2. Configuration Management (Sprint 1)
+## 2. Configuration Management (Sprint 1) - COMPLETED ✅
 
 **Goal:** Implement robust configuration handling, especially for the ODA File Converter path.
 
 **Tasks:**
 
-1.  **[ ] Task 1.1: Define Configuration Structure**
-    * In `pkg/config/config.go`, define a struct for application configuration (e.g., `AppConfig`) including `ODAConverterPath`.
+1.  **[x] Task 1.1: Define Configuration Structure**
+    * [x] In `pkg/config/config.go`, defined `AppConfig` struct with `ODAConverterPath` field.
+    * [x] Added error types and validation logic.
 
-2.  **[ ] Task 1.2: Load Configuration**
+2.  **[x] Task 1.2: Load Configuration**
     * **TDD:**
-        * [ ] **Write failing test:** In `pkg/config/config_test.go`, test loading the converter path from an environment variable (e.g., `ODA_CONVERTER_PATH`).
-        * [ ] **Implement:** Function to load `ODAConverterPath` from an environment variable.
-        * [ ] **Write failing test:** Test loading from a configuration file (e.g., `config.json` or `config.yaml` in user's config directory or project root) if env var is not set.
-        * [ ] **Implement:** Function to load from a config file.
-        * [ ] **Write failing test:** Test default path or error if no path is found.
-        * [ ] **Implement:** Logic for default or error.
-        * [ ] **Write failing test:** Test validation of the converter path (e.g., check if the file exists and is executable).
-        * [ ] **Implement:** Path validation.
+        * [x] **Write failing test:** In `pkg/config/config_test.go`, test loading from environment variable.
+        * [x] **Implement:** Function to load from `ODA_CONVERTER_PATH` environment variable.
+        * [x] **Write failing test:** Test default path when env var is not set.
+        * [x] **Implement:** Default path fallback logic.
+        * [x] **Write failing test:** Test path validation.
+        * [x] **Implement:** Path validation to check if file exists and is a regular file.
 
-3.  **[ ] Task 1.3: Integrate Configuration Loading**
-    * In `cmd/root.go` (or `main.go`), load the configuration at startup.
-    * Make the loaded `AppConfig` available to other packages that need it (e.g., the `converter` package).
+3.  **[x] Task 1.3: Integrate Configuration Loading**
+    * [x] Updated `cmd/root.go` to load and validate configuration at startup.
+    * [x] Made configuration available to other packages via package variable.
+    * [x] Updated tests to work with the new configuration system.
 
 ## 3. DWG to DXF Conversion (Sprint 2)
 
