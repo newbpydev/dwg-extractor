@@ -18,23 +18,21 @@
 
 **Tasks:**
 
-1.  **[ ] Task 0.1: Environment Setup**
-    * [ ] Install Go (version 1.18+).
-    * [ ] Install the ODA File Converter.
-        * Follow instructions from [ODA Teigha File Converter](https://www.opendesign.com/guestfiles/teighafileconverter).
-        * Note the installation path of the converter executable (e.g., `/opt/ODA_Converter/FileConverterApp` or `C:\Program Files\ODA\FileConverter\FileConverterApp.exe`).
-        * Verify command-line conversion works:
+1.  **[x] Task 0.1: Environment Setup**
+    * [x] Install Go (version 1.18+).
+    * [x] Install the ODA File Converter.
+        * Installed at: `C:\Program Files\ODA\ODAFileConverter 26.4.0`
+        * Note: Verify command-line conversion works:
             ```bash
-            # Example (Linux/macOS)
-            /path/to/FileConverterApp -i /path/to/sample.dwg -o /path/to/output_dir -f DXF -v ACAD2018
+            "C:\Program Files\ODA\ODAFileConverter 26.4.0\ODAFileConverter.exe" -i "path\to\sample.dwg" -o "path\to\output_dir" -f DXF -v ACAD2018
             ```
-    * [ ] Create a sample DWG file (`sample.dwg`) for testing. Include various elements like layers, blocks with attributes, and text entities.
-    * [ ] Manually convert `sample.dwg` to `sample.dxf` using the ODA File Converter to have a reference DXF file.
+    * [x] Sample DWG file (`sample.dwg`) exists in the project root.
+    * [ ] (Optional) Manually convert `sample.dwg` to `sample.dxf` using the ODA File Converter to have a reference DXF file.
 
-2.  **[ ] Task 0.2: Project Directory Structure**
-    * Create the main project directory (e.g., `go-dwg-extractor`).
-    * Initialize Go module: `go mod init github.com/yourusername/go-dwg-extractor`.
-    * Create the following initial directory structure:
+2.  **[x] Task 0.2: Project Directory Structure**
+    * Created the main project directory: `dwg-extractor`
+    * Initialized Go module: `github.com/remym/go-dwg-extractor`
+    * Created the following directory structure:
         ```
         go-dwg-extractor/
         ├── main.go                 // Main application entry point
@@ -69,20 +67,18 @@
         └── README.md
         ```
 
-3.  **[ ] Task 0.3: Install Initial Go Dependencies**
-    * DXF parsing library: `go get github.com/yofu/go-dxf`
-    * TUI library (choose one):
-        * `go get github.com/rivo/tview` (Example)
-        * OR `go get github.com/charmbracelet/bubbletea` (Example)
-    * Clipboard library: `go get github.com/atotto/clipboard` (Example)
+3.  **[x] Task 0.3: Install Initial Go Dependencies**
+    * [x] DXF parsing library: `github.com/yofu/go-dxf`
+    * [x] TUI library: `github.com/rivo/tview`
+    * [x] Clipboard library: `github.com/atotto/clipboard`
 
-4.  **[ ] Task 0.4: Basic `main.go` and CLI Flag Parsing**
+4.  **[x] Task 0.4: Basic `main.go` and CLI Flag Parsing**
     * **TDD:**
-        * [ ] **Write failing test:** In `cmd/root_test.go`, test for parsing a `-file` flag.
-        * [ ] **Implement:** In `cmd/root.go`, use the `flag` package to accept a DWG file path (e.g., `-file="path/to/drawing.dwg"`).
-        * [ ] **Write failing test:** Test for error handling if the file flag is not provided.
-        * [ ] **Implement:** Add logic to handle missing file flag.
-    * In `main.go`, call the command execution logic from `cmd/root.go`.
+        * [x] **Write failing test:** In `cmd/root_test.go`, test for parsing a `-file` flag.
+        * [x] **Implement:** In `cmd/root.go`, use the `flag` package to accept a DWG file path (e.g., `-file="path/to/drawing.dwg"`).
+        * [x] **Write failing test:** Test for error handling if the file flag is not provided.
+        * [x] **Implement:** Add logic to handle missing file flag.
+    * [x] In `main.go`, call the command execution logic from `cmd/root.go`.
 
 ## 2. Configuration Management (Sprint 1)
 

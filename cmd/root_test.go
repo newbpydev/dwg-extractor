@@ -5,16 +5,35 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/remym/go-dwg-extractor/pkg/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRootCommand(t *testing.T) {
-	// Save original command-line arguments
+	// Save original command-line arguments and environment variables
 	oldArgs := os.Args
-	defer func() { os.Args = oldArgs }()
+	oldEnv := os.Getenv("ODA_CONVERTER_PATH")
+	defer func() { 
+		os.Args = oldArgs 
+		os.Setenv("ODA_CONVERTER_PATH", oldEnv)
+	}()
+
+	// Create a temporary file for testing ODA converter
+	tempConverter, err := ioutil.TempFile("", "test-converter-*.exe")
+	require.NoError(t, err, "Failed to create temp converter file")
+	tempConverterPath := tempConverter.Name()
+	tempConverter.Close()
+	defer os.Remove(tempConverterPath)
+
+	// Set the ODA_CONVERTER_PATH environment variable for testing
+	os.Setenv("ODA_CONVERTER_PATH", tempConverterPath)
 
 	tests := []struct {
 		name        string
 		args        []string
+		envVars     map[string]string
 		wantErr     bool
 		errContains string
 	}{
@@ -39,11 +58,14 @@ func TestRootCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Set up environment variables
+			for k, v := range tt.envVars {
+				os.Setenv(k, v)
+			}
+
 			// Create a temporary file for testing
 			tempFile, err := ioutil.TempFile("", "testfile*.dwg")
-			if err != nil {
-				t.Fatalf("Failed to create temp file: %v", err)
-			}
+			require.NoError(t, err, "Failed to create temp file")
 			tempFileName := tempFile.Name()
 			tempFile.Close()
 			defer os.Remove(tempFileName)
@@ -61,16 +83,43 @@ func TestRootCommand(t *testing.T) {
 			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
 			execErr := Execute()
-			if (execErr != nil) != tt.wantErr {
-				t.Errorf("Execute() error = %v, wantErr %v", execErr, tt.wantErr)
-			}
-			if tt.wantErr && execErr != nil && tt.errContains != "" {
-				if execErr.Error() != tt.errContains && !contains(execErr.Error(), tt.errContains) {
-					t.Errorf("Execute() error = %v, want error containing %q", execErr, tt.errContains)
+			if tt.wantErr {
+				assert.Error(t, execErr)
+				if tt.errContains != "" {
+					assert.Contains(t, execErr.Error(), tt.errContains)
 				}
+			} else {
+				assert.NoError(t, execErr)
 			}
 		})
 	}
+}
+
+func TestConfigLoading(t *testing.T) {
+	// Save original environment variable
+	oldEnv := os.Getenv("ODA_CONVERTER_PATH")
+	defer os.Setenv("ODA_CONVERTER_PATH", oldEnv)
+
+	// Create a temporary file for testing
+	tempFile, err := ioutil.TempFile("", "test-converter-*.exe")
+	require.NoError(t, err, "Failed to create temp file")
+	tempFilePath := tempFile.Name()
+	tempFile.Close()
+	defer os.Remove(tempFilePath)
+
+	// Test with environment variable set
+	os.Setenv("ODA_CONVERTER_PATH", tempFilePath)
+	cfg, err := config.LoadConfig()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, tempFilePath, cfg.ODAConverterPath)
+
+	// Test with default path (should use the default path since we can't test the actual default)
+	os.Unsetenv("ODA_CONVERTER_PATH")
+	cfg, err = config.LoadConfig()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, config.DefaultODAConverterPath, cfg.ODAConverterPath)
 }
 
 // contains checks if a string contains another string
