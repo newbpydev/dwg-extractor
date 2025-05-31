@@ -8,10 +8,11 @@ import (
 
 // App represents the main TUI application
 type App struct {
-	app      *tview.Application
-	pages    *tview.Pages
-	dxfView  *DXFView
-	testMode bool // Indicates if app is running in test mode
+	app       *tview.Application
+	pages     *tview.Pages
+	dxfView   *DXFView
+	statusBar *tview.TextView
+	testMode  bool // Indicates if app is running in test mode
 }
 
 // NewApp creates a new TUI application
@@ -74,16 +75,16 @@ func (a *App) setupLayout() {
 		SetText("DWG Extractor")
 	header.SetBorder(true)
 
-	// Add a status bar
-	status := tview.NewTextView().
+	// Add a status bar and store reference for updates
+	a.statusBar = tview.NewTextView().
 		SetTextAlign(tview.AlignLeft).
 		SetText("Press Ctrl+C or Esc to exit")
-	status.SetBorder(true)
+	a.statusBar.SetBorder(true)
 
 	// Add components to the flex layout
 	flex.AddItem(header, 3, 1, false).
 		AddItem(a.dxfView.GetLayout(), 0, 1, true).
-		AddItem(status, 3, 1, false)
+		AddItem(a.statusBar, 3, 1, false)
 
 	// Add the layout to the pages
 	a.pages.AddPage("main", flex, true, true)
@@ -126,4 +127,30 @@ func (a *App) App() *tview.Application {
 // GetLayout returns the main pages layout for the TUI
 func (a *App) GetLayout() *tview.Pages {
 	return a.pages
+}
+
+// ShowStatus updates the status bar with a status message
+func (a *App) ShowStatus(message string) {
+	if a.testMode {
+		// In test mode, update directly without queuing
+		a.statusBar.SetText("[yellow]" + message + "[-]")
+	} else {
+		// In normal mode, queue the update for the event loop
+		a.app.QueueUpdateDraw(func() {
+			a.statusBar.SetText("[yellow]" + message + "[-]")
+		})
+	}
+}
+
+// ShowError updates the status bar with an error message
+func (a *App) ShowError(message string) {
+	if a.testMode {
+		// In test mode, update directly without queuing
+		a.statusBar.SetText("[red]Error: " + message + "[-]")
+	} else {
+		// In normal mode, queue the update for the event loop
+		a.app.QueueUpdateDraw(func() {
+			a.statusBar.SetText("[red]Error: " + message + "[-]")
+		})
+	}
 }
