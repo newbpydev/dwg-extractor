@@ -27,9 +27,21 @@ type DXFView struct {
 	categorySelector    CategorySelector
 	itemSelector        ItemSelector
 	breadcrumbNavigator BreadcrumbNavigator
+
+	// Error handling
+	errorHandler *ErrorHandler
+	errorLogger  *ErrorLogger
 }
 
-// NewDXFView creates a new DXF view
+// AppTUI represents the main TUI application
+type AppTUI struct {
+	app          *tview.Application
+	view         *DXFView
+	errorHandler *ErrorHandler
+	errorLogger  *ErrorLogger
+}
+
+// NewDXFView creates a new DXF view with error handling
 func NewDXFView(app *tview.Application) *DXFView {
 	// Create the main text view for layer details
 	textView := tview.NewTextView().
@@ -63,6 +75,10 @@ func NewDXFView(app *tview.Application) *DXFView {
 		searchInput:       searchInput,
 		currentLayerIndex: -1,
 	}
+
+	// Initialize error handling
+	view.errorHandler = NewErrorHandler(view)
+	view.errorLogger = NewErrorLogger()
 
 	// Set up search input handler
 	searchInput.SetChangedFunc(func(text string) {
@@ -469,4 +485,45 @@ func (v *DXFView) GetDetailsPane() *tview.TextView {
 // GetBreadcrumbNavigator returns the breadcrumb navigator
 func (v *DXFView) GetBreadcrumbNavigator() BreadcrumbNavigator {
 	return v.breadcrumbNavigator
+}
+
+// ShowError displays an error in the TUI
+func (v *DXFView) ShowError(err error) {
+	if appErr, ok := err.(AppError); ok {
+		v.errorHandler.HandleError(appErr)
+		v.errorLogger.LogError(appErr, LogLevelError)
+	} else {
+		// Convert regular error to AppError
+		systemErr := NewSystemError(err.Error(), err)
+		v.errorHandler.HandleError(systemErr)
+		v.errorLogger.LogError(systemErr, LogLevelError)
+	}
+
+	// Update status bar with error message
+	v.updateStatusWithError()
+}
+
+// ShowWarning displays a warning message
+func (v *DXFView) ShowWarning(message string) {
+	userErr := NewUserError("Warning", message)
+	v.errorHandler.HandleError(userErr)
+	v.errorLogger.LogError(userErr, LogLevelWarn)
+	v.updateStatusWithError()
+}
+
+// ClearError clears any displayed error
+func (v *DXFView) ClearError() {
+	v.errorHandler.isVisible = false
+	v.errorHandler.displayedText = ""
+	// Status will be updated through normal UI refresh
+}
+
+// updateStatusWithError updates the status bar with error information
+func (v *DXFView) updateStatusWithError() {
+	if v.errorHandler.IsErrorVisible() {
+		errorText := v.errorHandler.GetDisplayedError()
+		// For now, errors will be displayed through other UI elements
+		// Future implementation can integrate with status bar
+		_ = errorText
+	}
 }
