@@ -51,7 +51,9 @@ Thumbs.db
 
 # Windsurf directory
 .windsurf/
-
+    
+# Internal docs
+internal-docs/
 
 # Local development files
 local.*
