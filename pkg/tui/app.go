@@ -2,15 +2,16 @@ package tui
 
 import (
 	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"github.com/remym/go-dwg-extractor/pkg/data"
+	"github.com/rivo/tview"
 )
 
 // App represents the main TUI application
 type App struct {
-	app     *tview.Application
-	pages   *tview.Pages
-	dxfView *DXFView
+	app      *tview.Application
+	pages    *tview.Pages
+	dxfView  *DXFView
+	testMode bool // Indicates if app is running in test mode
 }
 
 // NewApp creates a new TUI application
@@ -22,8 +23,9 @@ func NewApp() *App {
 
 	// Set up the application
 	tuiApp := &App{
-		app:   app,
-		pages: pages,
+		app:      app,
+		pages:    pages,
+		testMode: false,
 	}
 
 	// Set up the main layout
@@ -37,11 +39,24 @@ func NewApp() *App {
 	return tuiApp
 }
 
+// SetTestMode enables or disables test mode
+// When in test mode, Run() will not start the event loop
+// This is useful for testing to prevent hanging
+func (a *App) SetTestMode(enabled bool) {
+	a.testMode = enabled
+}
+
 // UpdateDXFData updates the DXF view with new data
 func (a *App) UpdateDXFData(data *data.ExtractedData) {
-	a.app.QueueUpdateDraw(func() {
+	if a.testMode {
+		// In test mode, update directly without queuing
 		a.dxfView.Update(data)
-	})
+	} else {
+		// In normal mode, queue the update for the event loop
+		a.app.QueueUpdateDraw(func() {
+			a.dxfView.Update(data)
+		})
+	}
 }
 
 // setupLayout sets up the main application layout
@@ -85,6 +100,11 @@ func (a *App) Run() error {
 		}
 		return event
 	})
+
+	// If in test mode, don't actually run the event loop
+	if a.testMode {
+		return nil
+	}
 
 	// Run the application
 	if err := a.app.Run(); err != nil {

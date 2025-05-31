@@ -69,12 +69,65 @@ func TestDWGConverter_ConvertToDXF(t *testing.T) {
 					assert.Contains(t, args, "DXF")
 					assert.Contains(t, args, "-v")
 					assert.Contains(t, args, "ACAD2018")
-					
+
 					// Create a mock DXF file to simulate conversion
 					dxfPath := filepath.Join(filepath.Join(tempDir, "output"), "test.dxf")
 					_ = os.MkdirAll(filepath.Dir(dxfPath), 0755)
 					_ = os.WriteFile(dxfPath, []byte("DXF content"), 0644)
-					
+
+					return exec.CommandContext(ctx, "echo", "mock command")
+				}
+			},
+			expectError: false,
+		},
+		{
+			name:      "output directory creation failure",
+			dwgPath:   testDWGPath,
+			outputDir: filepath.Join(tempDir, "fail-output"),
+			setup: func() {
+				// Make a file where the output dir should be, so MkdirAll fails
+				failPath := filepath.Join(tempDir, "fail-output")
+				_ = os.WriteFile(failPath, []byte("not a dir"), 0644)
+			},
+			expectError: true,
+			errContains: "failed to create output directory",
+		},
+		{
+			name:      "command execution failure",
+			dwgPath:   testDWGPath,
+			outputDir: filepath.Join(tempDir, "cmd-fail-output"),
+			setup: func() {
+				commandContext = func(ctx context.Context, command string, args ...string) *exec.Cmd {
+					cmd := exec.CommandContext(ctx, "false") // always fails
+					return cmd
+				}
+			},
+			expectError: true,
+			errContains: "failed to convert DWG to DXF",
+		},
+		{
+			name:      "no DXF file generated, no alternate found",
+			dwgPath:   testDWGPath,
+			outputDir: filepath.Join(tempDir, "no-dxf-output"),
+			setup: func() {
+				commandContext = func(ctx context.Context, command string, args ...string) *exec.Cmd {
+					// Don't create any DXF file
+					return exec.CommandContext(ctx, "echo", "mock command")
+				}
+			},
+			expectError: true,
+			errContains: "conversion failed: no DXF file was generated",
+		},
+		{
+			name:      "alternate DXF file found",
+			dwgPath:   testDWGPath,
+			outputDir: filepath.Join(tempDir, "alt-dxf-output"),
+			setup: func() {
+				commandContext = func(ctx context.Context, command string, args ...string) *exec.Cmd {
+					// Create a DXF file with a different name
+					altDXF := filepath.Join(filepath.Join(tempDir, "alt-dxf-output"), "altname.dxf")
+					_ = os.MkdirAll(filepath.Dir(altDXF), 0755)
+					_ = os.WriteFile(altDXF, []byte("DXF content"), 0644)
 					return exec.CommandContext(ctx, "echo", "mock command")
 				}
 			},
@@ -84,7 +137,7 @@ func TestDWGConverter_ConvertToDXF(t *testing.T) {
 			name:        "empty dwg path",
 			dwgPath:     "",
 			outputDir:   filepath.Join(tempDir, "output"),
-			setup:       func(){},
+			setup:       func() {},
 			expectError: true,
 			errContains: "DWG path cannot be empty",
 		},
@@ -92,7 +145,7 @@ func TestDWGConverter_ConvertToDXF(t *testing.T) {
 			name:        "nonexistent dwg file",
 			dwgPath:     filepath.Join(tempDir, "nonexistent.dwg"),
 			outputDir:   filepath.Join(tempDir, "output"),
-			setup:       func(){},
+			setup:       func() {},
 			expectError: true,
 			errContains: "input file does not exist",
 		},
@@ -113,9 +166,11 @@ func TestDWGConverter_ConvertToDXF(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, converter)
 
-			// Create output directory
-			err = os.MkdirAll(tt.outputDir, 0755)
-			require.NoError(t, err)
+			// Create output directory only if we don't expect directory creation to fail
+			if tt.name != "output directory creation failure" {
+				err = os.MkdirAll(tt.outputDir, 0755)
+				require.NoError(t, err)
+			}
 
 			// Call the method under test
 			dxfPath, err := converter.ConvertToDXF(tt.dwgPath, tt.outputDir)
@@ -142,21 +197,21 @@ func TestDWGConverter_ConvertToDXF(t *testing.T) {
 
 func TestNewDWGConverter(t *testing.T) {
 	tests := []struct {
-		name        string
+		name          string
 		converterPath string
-		expectError bool
-		errContains string
+		expectError   bool
+		errContains   string
 	}{
 		{
-			name:         "valid converter path",
+			name:          "valid converter path",
 			converterPath: "path/to/odaconverter",
-			expectError:  false,
+			expectError:   false,
 		},
 		{
-			name:         "empty converter path",
+			name:          "empty converter path",
 			converterPath: "",
-			expectError:  true,
-			errContains:  "converter path cannot be empty",
+			expectError:   true,
+			errContains:   "converter path cannot be empty",
 		},
 	}
 

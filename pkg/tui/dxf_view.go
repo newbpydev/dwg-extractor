@@ -11,13 +11,13 @@ import (
 
 // DXFView handles the display of DXF data
 type DXFView struct {
-	app         *tview.Application
-	pages       *tview.Pages
-	textView    *tview.TextView
-	layers      *tview.List
-	entityList  *tview.List
-	searchInput *tview.InputField
-	data        *data.ExtractedData
+	app               *tview.Application
+	pages             *tview.Pages
+	textView          *tview.TextView
+	layers            *tview.List
+	entityList        *tview.List
+	searchInput       *tview.InputField
+	data              *data.ExtractedData
 	currentLayerIndex int
 }
 
@@ -47,12 +47,12 @@ func NewDXFView(app *tview.Application) *DXFView {
 	pages := tview.NewPages()
 
 	view := &DXFView{
-		app:         app,
-		pages:       pages,
-		textView:    textView,
-		layers:      layers,
-		entityList:  entityList,
-		searchInput: searchInput,
+		app:               app,
+		pages:             pages,
+		textView:          textView,
+		layers:            layers,
+		entityList:        entityList,
+		searchInput:       searchInput,
 		currentLayerIndex: -1,
 	}
 
@@ -71,7 +71,7 @@ func NewDXFView(app *tview.Application) *DXFView {
 func (v *DXFView) Update(data *data.ExtractedData) {
 	v.data = data
 	v.currentLayerIndex = -1
-	
+
 	// Clear the current content
 	v.textView.Clear()
 
@@ -83,7 +83,7 @@ func (v *DXFView) Update(data *data.ExtractedData) {
 
 	// Update layers list
 	v.updateLayersList()
-	
+
 	// Show the layers view
 	v.showLayersView()
 }
@@ -133,33 +133,33 @@ func (v *DXFView) showLayerDetails(layerIndex int) {
 	if layerIndex < 0 || layerIndex >= len(v.data.Layers) {
 		return
 	}
-	
+
 	v.currentLayerIndex = layerIndex
 	layer := v.data.Layers[layerIndex]
-	
+
 	// Update the entity list
 	v.entityList.Clear()
-	
+
 	// Add a back item
 	v.entityList.AddItem("← Back to Layers", "", 'b', func() {
 		v.showLayersView()
 	})
-	
+
 	// Add entities for this layer
 	entityCount := 0
 	for _, entity := range layer.Entities {
 		switch e := entity.(type) {
 		case *data.LineInfo:
 			v.entityList.AddItem(
-				fmt.Sprintf("Line (%.1f,%.1f) to (%.1f,%.1f)", 
+				fmt.Sprintf("Line (%.1f,%.1f) to (%.1f,%.1f)",
 					e.StartPoint.X, e.StartPoint.Y, e.EndPoint.X, e.EndPoint.Y),
 				fmt.Sprintf("Layer: %s, Color: %d", e.Layer, e.Color),
 				0, nil)
 			entityCount++
-		// Add cases for other entity types as needed
+			// Add cases for other entity types as needed
 		}
 	}
-	
+
 	// Update the text view with layer details
 	v.textView.Clear()
 	fmt.Fprintf(v.textView, "[green]Layer:[-] %s\n", layer.Name)
@@ -168,7 +168,7 @@ func (v *DXFView) showLayerDetails(layerIndex int) {
 	fmt.Fprintf(v.textView, "[green]Frozen:[-] %v\n", layer.IsFrozen)
 	fmt.Fprintf(v.textView, "[green]Line Type:[-] %s\n", layer.LineType)
 	fmt.Fprintf(v.textView, "[green]Entities:[-] %d\n\n", entityCount)
-	
+
 	// Show the entities view
 	v.showEntitiesView()
 }
@@ -179,7 +179,7 @@ func (v *DXFView) showEntitiesView() {
 	flex := tview.NewFlex().
 		AddItem(v.entityList, 0, 1, true).
 		AddItem(v.textView, 0, 1, false)
-	
+
 	// Add or update the entities page
 	v.pages.AddAndSwitchToPage("entities", flex, true)
 }
@@ -223,10 +223,10 @@ func (v *DXFView) setupKeybindings() {
 				return nil
 			}
 			// If a letter or number is pressed, focus on search and type
-			if (event.Rune() >= 'a' && event.Rune() <= 'z') || 
-			   (event.Rune() >= 'A' && event.Rune() <= 'Z') ||
-			   (event.Rune() >= '0' && event.Rune() <= '9') ||
-			   event.Rune() == ' ' || event.Rune() == ':' {
+			if (event.Rune() >= 'a' && event.Rune() <= 'z') ||
+				(event.Rune() >= 'A' && event.Rune() <= 'Z') ||
+				(event.Rune() >= '0' && event.Rune() <= '9') ||
+				event.Rune() == ' ' || event.Rune() == ':' {
 				v.app.SetFocus(v.searchInput)
 				// Append the pressed key to the search input
 				v.searchInput.SetText(v.searchInput.GetText() + string(event.Rune()))
@@ -276,7 +276,10 @@ func (v *DXFView) ToggleLayerVisibility(visibleIndex int) {
 	}
 	for i := range v.data.Layers {
 		if v.data.Layers[i].Name == name {
-			v.data.Layers[i].IsOn = !v.data.Layers[i].IsOn
+			// Don't toggle frozen layers
+			if !v.data.Layers[i].IsFrozen {
+				v.data.Layers[i].IsOn = !v.data.Layers[i].IsOn
+			}
 			break
 		}
 	}

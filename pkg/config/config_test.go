@@ -120,6 +120,20 @@ func TestValidate(t *testing.T) {
 			wantErr:       true,
 			expectedError: ErrODAConverterNotFound,
 		},
+		{
+			name: "path is directory",
+			setup: func() *AppConfig {
+				dir, err := os.MkdirTemp("", "test-converter-dir-*")
+				if err != nil {
+					t.Fatalf("failed to create temp dir: %v", err)
+				}
+				return &AppConfig{
+					ODAConverterPath: dir,
+				}
+			},
+			wantErr:       true,
+			expectedError: ErrInvalidODAConverterPath,
+		},
 	}
 
 	for _, tt := range tests {

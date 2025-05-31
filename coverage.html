@@ -1,0 +1,1242 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>cmd: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/remym/go-dwg-extractor/cmd/root.go (67.4%)</option>
+				
+				<option value="file1">github.com/remym/go-dwg-extractor/cmd/tui.go (2.0%)</option>
+				
+				<option value="file2">github.com/remym/go-dwg-extractor/main.go (0.0%)</option>
+				
+				<option value="file3">github.com/remym/go-dwg-extractor/pkg/config/config.go (93.3%)</option>
+				
+				<option value="file4">github.com/remym/go-dwg-extractor/pkg/converter/converter.go (100.0%)</option>
+				
+				<option value="file5">github.com/remym/go-dwg-extractor/pkg/data/models.go (100.0%)</option>
+				
+				<option value="file6">github.com/remym/go-dwg-extractor/pkg/dxfparser/parser.go (100.0%)</option>
+				
+				<option value="file7">github.com/remym/go-dwg-extractor/pkg/tui/app.go (78.1%)</option>
+				
+				<option value="file8">github.com/remym/go-dwg-extractor/pkg/tui/dxf_view.go (72.5%)</option>
+				
+				<option value="file9">github.com/remym/go-dwg-extractor/pkg/tui/status_view.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package cmd
+
+import (
+        "flag"
+        "fmt"
+        "os"
+        "path/filepath"
+
+        "github.com/remym/go-dwg-extractor/pkg/config"
+        "github.com/remym/go-dwg-extractor/pkg/dxfparser"
+)
+
+var (
+        rootCmd  string
+        outputDir string
+        cfg       *config.AppConfig
+)
+
+// Execute runs the root command
+func Execute() error <span class="cov8" title="1">{
+        // Check if no command is provided
+        if len(os.Args) &lt; 2 </span><span class="cov8" title="1">{
+                return fmt.Errorf("no command provided. Use 'extract' or 'tui'")
+        }</span>
+
+        // Handle the command
+        <span class="cov8" title="1">command := os.Args[1]
+        if command == "tui" </span><span class="cov0" title="0">{
+                // For TUI, just run it without any file requirements
+                return ExecuteTUI()
+        }</span> else<span class="cov8" title="1"> if command == "extract" </span><span class="cov8" title="1">{
+                // For extract, a DWG file is required
+                if len(os.Args) &lt; 3 </span><span class="cov0" title="0">{
+                        return fmt.Errorf("no DWG file specified. Usage: %s extract [DWG file]", os.Args[0])
+                }</span>
+                // Remove the "extract" command from args
+                <span class="cov8" title="1">os.Args = append(os.Args[:1], os.Args[2:]...)
+
+                // Parse command line flags for extract command
+                fileFlag := flag.String("file", "", "Path to the DWG file to process")
+                flag.StringVar(&amp;outputDir, "output", "", "Output directory for converted files (default: same as input file)")
+                flag.Parse()
+
+                // Set the root command from the flag
+                rootCmd = *fileFlag
+
+                // Check if file is provided for extract command
+                if rootCmd == "" </span><span class="cov0" title="0">{
+                        return fmt.Errorf("no DWG file specified. Please provide a file using the -file flag")
+                }</span>
+
+                // Load configuration
+                <span class="cov8" title="1">var err error
+                cfg, err = config.LoadConfig()
+                if err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to load configuration: %w", err)
+                }</span>
+
+                // If output directory is not specified, use the same directory as the input file
+                <span class="cov8" title="1">if outputDir == "" </span><span class="cov8" title="1">{
+                        outputDir = filepath.Dir(rootCmd)
+                }</span>
+
+                // Create a new DWG converter (use DI for testing)
+                <span class="cov8" title="1">dwgConverter, err := newDWGConverter(cfg.ODAConverterPath)
+                if err != nil </span><span class="cov8" title="1">{
+                        return fmt.Errorf("failed to create DWG converter: %w", err)
+                }</span>
+
+                // Convert DWG to DXF
+                <span class="cov8" title="1">dxfFile, err := dwgConverter.ConvertToDXF(rootCmd, outputDir)
+                if err != nil </span><span class="cov8" title="1">{
+                        return fmt.Errorf("conversion failed: %w", err)
+                }</span>
+
+                // Parse the DXF file
+                <span class="cov8" title="1">var dxfParser dxfparser.ParserInterface = dxfparser.NewParser()
+                dxfData, err := dxfParser.ParseDXF(dxfFile)
+                if err != nil </span><span class="cov0" title="0">{
+                        return fmt.Errorf("failed to parse DXF file: %w", err)
+                }</span>
+
+                // Display the extracted information
+                <span class="cov8" title="1">fmt.Println("Successfully extracted DXF information:")
+                fmt.Printf("DXF Version: %s\n", dxfData.DXFVersion)
+                fmt.Printf("Number of layers: %d\n", len(dxfData.Layers))
+                for _, layer := range dxfData.Layers </span><span class="cov0" title="0">{
+                        onOff := "ON"
+                        if !layer.IsOn </span><span class="cov0" title="0">{
+                                onOff = "OFF"
+                        }</span>
+                        <span class="cov0" title="0">frozen := ""
+                        if layer.IsFrozen </span><span class="cov0" title="0">{
+                                frozen = " (FROZEN)"
+                        }</span>
+
+                        <span class="cov0" title="0">fmt.Printf("\nLayer: %s\n", layer.Name)
+                        fmt.Printf("  Color: %d, Line Type: %s, %s%s\n", layer.Color, layer.LineType, onOff, frozen)</span>
+                }
+
+                <span class="cov8" title="1">return nil</span>
+        }
+
+        <span class="cov0" title="0">return fmt.Errorf("unknown command: %s. Use 'extract' or 'tui'", command)
+
+        // No duplicate code here
+
+        return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package cmd
+
+import (
+        "flag"
+        "os"
+
+        "github.com/gdamore/tcell/v2"
+        "github.com/remym/go-dwg-extractor/pkg/converter"
+        "github.com/remym/go-dwg-extractor/pkg/data"
+        "github.com/remym/go-dwg-extractor/pkg/dxfparser"
+        "github.com/remym/go-dwg-extractor/pkg/tui"
+        "github.com/remym/go-dwg-extractor/pkg/config"
+)
+
+// tuiCmd represents the tui command
+var tuiCmd = flag.NewFlagSet("tui", flag.ExitOnError)
+var tuiOutputDir string
+
+func init() <span class="cov8" title="1">{
+        tuiCmd.StringVar(&amp;tuiOutputDir, "output", "", "Output directory for converted files (default: same as input file)")
+}</span>
+
+// RunTUI runs the TUI command
+func RunTUI(args []string) error <span class="cov0" title="0">{
+        var dxfData *data.ExtractedData
+        var statusMsg string
+
+        app := tui.NewApp()
+        statusView := tui.NewStatusView()
+        app.App().SetRoot(statusView, true)
+
+        if args != nil &amp;&amp; len(args) &gt; 0 </span><span class="cov0" title="0">{
+                statusView.SetText("[yellow]Converting DWG to DXF, please wait...[-]")
+                app.App().Draw()
+
+                // Load configuration
+                cfg, err := config.LoadConfig()
+                if err != nil </span><span class="cov0" title="0">{
+                        statusView.SetText("[red]Failed to load configuration:[-] " + err.Error() + "\nPress any key to exit.")
+                        app.App().Run()
+                        return err
+                }</span>
+
+                // Create a new DWG converter
+                <span class="cov0" title="0">dwgConverter, err := converter.NewDWGConverter(cfg.ODAConverterPath)
+                if err != nil </span><span class="cov0" title="0">{
+                        statusView.SetText("[red]Failed to create DWG converter:[-] " + err.Error() + "\nPress any key to exit.")
+                        app.App().Run()
+                        return err
+                }</span>
+
+                // Convert DWG to DXF
+                <span class="cov0" title="0">dwgFile := args[0]
+                statusView.SetText("[yellow]Converting: [-]" + dwgFile)
+                app.App().Draw()
+                dxfFile, err := dwgConverter.ConvertToDXF(dwgFile, "")
+                if err != nil </span><span class="cov0" title="0">{
+                        statusView.SetText("[red]Conversion failed:[-] " + err.Error() + "\nPress any key to exit.")
+                        app.App().Run()
+                        return err
+                }</span>
+
+                // Parse the DXF file
+                <span class="cov0" title="0">statusView.SetText("[yellow]Parsing DXF file...[-]")
+                app.App().Draw()
+                var dxfParser dxfparser.ParserInterface = dxfparser.NewParser()
+                dxfData, err = dxfParser.ParseDXF(dxfFile)
+                if err != nil </span><span class="cov0" title="0">{
+                        statusView.SetText("[red]Failed to parse DXF file:[-] " + err.Error() + "\nPress any key to exit.")
+                        app.App().Run()
+                        return err
+                }</span>
+                <span class="cov0" title="0">statusMsg = "[green]Conversion and parsing successful![-]"</span>
+        } else<span class="cov0" title="0"> {
+                // Use sample data if no file is provided
+                statusMsg = "[yellow]No DWG file provided. Using sample data.[-]"
+                dxfData = &amp;data.ExtractedData{
+                        DXFVersion: "R2020 (Sample Data)",
+                        Layers: []data.LayerInfo{
+                                {Name: "0", IsOn: true, IsFrozen: false, Color: 7, LineType: "CONTINUOUS"},
+                                {Name: "Walls", IsOn: true, IsFrozen: false, Color: 1, LineType: "CONTINUOUS"},
+                                {Name: "Doors", IsOn: true, IsFrozen: false, Color: 2, LineType: "DASHED"},
+                                {Name: "Windows", IsOn: true, IsFrozen: true, Color: 3, LineType: "HIDDEN"},
+                        },
+                }
+        }</span>
+
+        <span class="cov0" title="0">statusView.SetText(statusMsg + "\n[gray]Press any key to continue...[-]")
+        app.App().Draw()
+        app.App().SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov0" title="0">{
+                // Any key continues to main TUI
+                app.App().SetRoot(app.GetLayout(), true)
+                app.UpdateDXFData(dxfData)
+                app.App().SetInputCapture(nil)
+                return nil
+        }</span>)
+
+        <span class="cov0" title="0">return app.Run()</span>
+}
+
+
+// ExecuteTUI executes the TUI command
+func ExecuteTUI() error <span class="cov0" title="0">{
+        if err := tuiCmd.Parse(os.Args[2:]); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // If no DWG file is provided, use sample data
+        <span class="cov0" title="0">return RunTUI(nil)</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package main
+
+import (
+        "log"
+        "os"
+
+        "github.com/remym/go-dwg-extractor/cmd"
+)
+
+func main() <span class="cov0" title="0">{
+        // Ensure at least one argument is provided
+        if len(os.Args) &lt; 2 </span><span class="cov0" title="0">{
+                log.Fatalf("No command provided. Usage: %s [extract|tui] [options]", os.Args[0])
+        }</span>
+
+        <span class="cov0" title="0">if err := cmd.Execute(); err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Error: %v", err)
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package config
+
+import (
+        "os"
+        "path/filepath"
+)
+
+// AppConfig holds the application configuration
+type AppConfig struct {
+        // ODAConverterPath is the path to the ODA File Converter executable
+        ODAConverterPath string
+}
+
+// DefaultODAConverterPath is the default path where we expect to find the ODA File Converter
+var DefaultODAConverterPath = `C:\Program Files\ODA\ODAFileConverter 26.4.0\ODAFileConverter.exe`
+
+// LoadConfig loads the application configuration from environment variables
+func LoadConfig() (*AppConfig, error) <span class="cov8" title="1">{
+        // First, try to get the path from environment variable
+        path := os.Getenv("ODA_CONVERTER_PATH")
+        
+        // If not set, use the default path
+        if path == "" </span><span class="cov8" title="1">{
+                path = DefaultODAConverterPath
+        }</span>
+        
+        // Clean the path to handle any path separators
+        <span class="cov8" title="1">path = filepath.Clean(path)
+        
+        // Create and return the config
+        return &amp;AppConfig{
+                ODAConverterPath: path,
+        }, nil</span>
+}
+
+// Validate checks if the configuration is valid
+func (c *AppConfig) Validate() error <span class="cov8" title="1">{
+        if c.ODAConverterPath == "" </span><span class="cov8" title="1">{
+                return ErrMissingODAConverterPath
+        }</span>
+        
+        // Check if the file exists and is executable
+        <span class="cov8" title="1">info, err := os.Stat(c.ODAConverterPath)
+        if os.IsNotExist(err) </span><span class="cov8" title="1">{
+                return ErrODAConverterNotFound
+        }</span>
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        
+        // On Windows, we can't directly check if a file is executable,
+        // so we just check if it's a regular file
+        <span class="cov8" title="1">if info.Mode().IsRegular() </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+        
+        <span class="cov8" title="1">return ErrInvalidODAConverterPath</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">// Package converter provides functionality to convert DWG files to DXF format
+// using the ODA File Converter.
+package converter
+
+import (
+        "bytes"
+        "context"
+        "fmt"
+        "os"
+        "os/exec"
+        "path/filepath"
+        "time"
+)
+
+// commandContext is a variable that holds the function to create commands
+// This is used to allow mocking in tests
+var commandContext = exec.CommandContext
+
+// DWGConverter defines the interface for converting DWG files to DXF.
+type DWGConverter interface {
+        // ConvertToDXF converts a DWG file to DXF format.
+        // It returns the path to the converted DXF file or an error if the conversion fails.
+        ConvertToDXF(dwgPath, outputDir string) (string, error)
+}
+
+// odaconverter implements the DWGConverter interface.
+type odaconverter struct {
+        converterPath string // Path to the ODA File Converter executable
+}
+
+// NewDWGConverter creates a new instance of DWGConverter.
+// It returns an error if the converter path is empty.
+func NewDWGConverter(converterPath string) (DWGConverter, error) <span class="cov8" title="1">{
+        if converterPath == "" </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("converter path cannot be empty")
+        }</span>
+
+        <span class="cov8" title="1">return &amp;odaconverter{
+                converterPath: converterPath,
+        }, nil</span>
+}
+
+// ConvertToDXF converts the specified DWG file to DXF format using the ODA File Converter.
+// It returns the path to the converted DXF file or an error if the conversion fails.
+func (c *odaconverter) ConvertToDXF(dwgPath, outputDir string) (string, error) <span class="cov8" title="1">{
+        if dwgPath == "" </span><span class="cov8" title="1">{
+                return "", fmt.Errorf("DWG path cannot be empty")
+        }</span>
+
+        // Check if the input file exists
+        <span class="cov8" title="1">if _, err := os.Stat(dwgPath); os.IsNotExist(err) </span><span class="cov8" title="1">{
+                return "", fmt.Errorf("input file does not exist: %s", dwgPath)
+        }</span>
+
+        // Ensure output directory exists
+        <span class="cov8" title="1">if err := os.MkdirAll(outputDir, 0755); err != nil </span><span class="cov8" title="1">{
+                return "", fmt.Errorf("failed to create output directory: %w", err)
+        }</span>
+
+        // Get the base name of the input file without extension
+        <span class="cov8" title="1">baseName := filepath.Base(dwgPath)
+        ext := filepath.Ext(baseName)
+        if ext != "" </span><span class="cov8" title="1">{
+                baseName = baseName[0 : len(baseName)-len(ext)]
+        }</span>
+
+        // Generate DXF file path (same name as DWG but with .dxf extension)
+        <span class="cov8" title="1">dxfPath := filepath.Join(outputDir, baseName+".dxf")
+
+        // Create a context with timeout for the conversion
+        ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+        defer cancel()
+
+        // Prepare the command to run the ODA File Converter
+        // Command format: ODAFileConverter.exe &lt;input&gt; &lt;output&gt; version [input format] [output format] [recurse] [report] [audit]
+        cmd := commandContext(
+                ctx,
+                c.converterPath,
+                "-i", dwgPath,
+                "-o", outputDir,
+                "-f", "DXF",
+                "-v", "ACAD2018",
+        )
+
+        // Set up output buffers
+        var stdout, stderr bytes.Buffer
+        cmd.Stdout = &amp;stdout
+        cmd.Stderr = &amp;stderr
+
+        // Run the command
+        if err := cmd.Run(); err != nil </span><span class="cov8" title="1">{
+                // If the command failed, include stderr in the error message
+                return "", fmt.Errorf("failed to convert DWG to DXF: %w\n%s", err, stderr.String())
+        }</span>
+
+        // Verify the output file was created
+        <span class="cov8" title="1">if _, err := os.Stat(dxfPath); os.IsNotExist(err) </span><span class="cov8" title="1">{
+                // If the expected DXF file doesn't exist, check for other possible names
+                // Sometimes the converter might use a different naming convention
+                files, err := filepath.Glob(filepath.Join(outputDir, "*.dxf"))
+                if err != nil || len(files) == 0 </span><span class="cov8" title="1">{
+                        return "", fmt.Errorf("conversion failed: no DXF file was generated")
+                }</span>
+                <span class="cov8" title="1">dxfPath = files[0]</span> // Use the first DXF file found
+        }
+
+        <span class="cov8" title="1">return dxfPath, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package data
+
+import "fmt"
+
+// Point defines a 2D or 3D point.
+type Point struct {
+        X, Y, Z float64
+}
+
+// String returns a string representation of the Point.
+func (p Point) String() string <span class="cov8" title="1">{
+        return fmt.Sprintf("(%.2f, %.2f, %.2f)", p.X, p.Y, p.Z)
+}</span>
+
+// Entity is the interface that all DXF entities must implement.
+type Entity interface {
+        GetLayer() string
+}
+
+// LayerInfo holds information about a DXF layer.
+type LayerInfo struct {
+        Name     string
+        Color    int
+        IsOn     bool
+        IsFrozen bool
+        LineType string
+        LineWeight float64
+        Entities []Entity // Entities that belong to this layer
+}
+
+// AttributeInfo holds information about a block attribute.
+type AttributeInfo struct {
+        Tag      string
+        Value    string
+        Position Point
+        Layer    string
+}
+
+// GetLayer implements the Entity interface for BlockInfo.
+func (b BlockInfo) GetLayer() string <span class="cov8" title="1">{
+        return b.Layer
+}</span>
+
+// BlockInfo holds information about a block instance (Insert entity).
+type BlockInfo struct {
+        Name           string
+        Layer          string
+        InsertionPoint Point
+        Rotation       float64
+        Scale          Point
+        Attributes     []AttributeInfo
+}
+
+// GetLayer implements the Entity interface for TextInfo.
+func (t TextInfo) GetLayer() string <span class="cov8" title="1">{
+        return t.Layer
+}</span>
+
+// TextInfo holds information about a Text entity.
+type TextInfo struct {
+        Value          string
+        Layer          string
+        InsertionPoint Point
+        Height         float64
+        Rotation       float64
+        Style          string
+}
+
+// GetLayer implements the Entity interface for LineInfo.
+func (l LineInfo) GetLayer() string <span class="cov8" title="1">{
+        return l.Layer
+}</span>
+
+// LineInfo holds information about a Line entity.
+type LineInfo struct {
+        StartPoint Point
+        EndPoint   Point
+        Layer      string
+        Color      int
+}
+
+// GetLayer implements the Entity interface for CircleInfo.
+func (c CircleInfo) GetLayer() string <span class="cov8" title="1">{
+        return c.Layer
+}</span>
+
+// CircleInfo holds information about a Circle entity.
+type CircleInfo struct {
+        Center     Point
+        Radius     float64
+        Layer      string
+        Color      int
+}
+
+// GetLayer implements the Entity interface for PolylineInfo.
+func (p PolylineInfo) GetLayer() string <span class="cov8" title="1">{
+        return p.Layer
+}</span>
+
+// PolylineInfo holds information about a Polyline entity.
+type PolylineInfo struct {
+        Points     []Point
+        Layer      string
+        Color      int
+        IsClosed   bool
+}
+
+// ExtractedData holds all data parsed from the DXF.
+type ExtractedData struct {
+        DXFVersion string
+        Layers     []LayerInfo
+        Blocks     []BlockInfo
+        Texts      []TextInfo
+        Lines      []LineInfo
+        Circles    []CircleInfo
+        Polylines  []PolylineInfo
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package dxfparser
+
+import (
+        "fmt"
+        "os"
+        "strings"
+
+        "github.com/remym/go-dwg-extractor/pkg/data"
+)
+
+// ParserInterface defines the contract for DXF parsing
+//go:generate mockgen -destination=../mocks/mock_parser.go -package=mocks github.com/remym/go-dwg-extractor/pkg/dxfparser ParserInterface
+type ParserInterface interface {
+        ParseDXF(filePath string) (*data.ExtractedData, error)
+}
+
+// Parser handles the parsing of DXF files.
+type Parser struct {
+        // Add any parser configuration or state here
+}
+
+// NewParser creates a new instance of the DXF parser.
+func NewParser() *Parser <span class="cov8" title="1">{
+        return &amp;Parser{}
+}</span>
+
+// Ensure Parser implements ParserInterface
+var _ ParserInterface = (*Parser)(nil)
+
+// ParseDXF parses a DXF file and returns the extracted data.
+// This is a simplified implementation that extracts basic information.
+func (p *Parser) ParseDXF(filePath string) (*data.ExtractedData, error) <span class="cov8" title="1">{
+        // Read the file content
+        content, err := os.ReadFile(filePath)
+        if err != nil </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("failed to read DXF file: %w", err)
+        }</span>
+
+        // Create a new ExtractedData instance
+        <span class="cov8" title="1">result := &amp;data.ExtractedData{
+                DXFVersion: "R12", // Default version
+        }
+
+        // Convert content to string for simple parsing
+        dxfContent := string(content)
+
+        // Extract basic information using simple string parsing
+        // This is a simplified approach and should be replaced with a proper DXF parser
+        // for production use.
+
+
+        // Extract layers (simplified)
+        if strings.Contains(dxfContent, "LAYER") </span><span class="cov8" title="1">{
+                // In a real implementation, properly parse the LAYER section
+                result.Layers = append(result.Layers, data.LayerInfo{
+                        Name:     "0", // Default layer
+                        Color:    7,   // Default color (white/black)
+                        IsOn:     true,
+                        IsFrozen: false,
+                        LineType: "CONTINUOUS",
+                })
+        }</span>
+
+        // In a real implementation, you would parse the DXF file properly
+        // using a DXF parsing library that can handle the binary/ASCII format.
+
+        <span class="cov8" title="1">return result, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package tui
+
+import (
+        "github.com/gdamore/tcell/v2"
+        "github.com/remym/go-dwg-extractor/pkg/data"
+        "github.com/rivo/tview"
+)
+
+// App represents the main TUI application
+type App struct {
+        app      *tview.Application
+        pages    *tview.Pages
+        dxfView  *DXFView
+        testMode bool // Indicates if app is running in test mode
+}
+
+// NewApp creates a new TUI application
+func NewApp() *App <span class="cov8" title="1">{
+        app := tview.NewApplication()
+
+        // Create the main pages container
+        pages := tview.NewPages()
+
+        // Set up the application
+        tuiApp := &amp;App{
+                app:      app,
+                pages:    pages,
+                testMode: false,
+        }
+
+        // Set up the main layout
+        tuiApp.setupLayout()
+
+        // Set the root
+        app.SetRoot(pages, true).
+                EnableMouse(true).
+                SetFocus(pages)
+
+        return tuiApp
+}</span>
+
+// SetTestMode enables or disables test mode
+// When in test mode, Run() will not start the event loop
+// This is useful for testing to prevent hanging
+func (a *App) SetTestMode(enabled bool) <span class="cov8" title="1">{
+        a.testMode = enabled
+}</span>
+
+// UpdateDXFData updates the DXF view with new data
+func (a *App) UpdateDXFData(data *data.ExtractedData) <span class="cov8" title="1">{
+        if a.testMode </span><span class="cov8" title="1">{
+                // In test mode, update directly without queuing
+                a.dxfView.Update(data)
+        }</span> else<span class="cov0" title="0"> {
+                // In normal mode, queue the update for the event loop
+                a.app.QueueUpdateDraw(func() </span><span class="cov0" title="0">{
+                        a.dxfView.Update(data)
+                }</span>)
+        }
+}
+
+// setupLayout sets up the main application layout
+func (a *App) setupLayout() <span class="cov8" title="1">{
+        // Create the DXF view with the application instance
+        a.dxfView = NewDXFView(a.app)
+
+        // Create a flex layout that will contain our main content
+        flex := tview.NewFlex().
+                SetDirection(tview.FlexRow)
+
+        // Add a header
+        header := tview.NewTextView().
+                SetTextAlign(tview.AlignCenter).
+                SetText("DWG Extractor")
+        header.SetBorder(true)
+
+        // Add a status bar
+        status := tview.NewTextView().
+                SetTextAlign(tview.AlignLeft).
+                SetText("Press Ctrl+C or Esc to exit")
+        status.SetBorder(true)
+
+        // Add components to the flex layout
+        flex.AddItem(header, 3, 1, false).
+                AddItem(a.dxfView.GetLayout(), 0, 1, true).
+                AddItem(status, 3, 1, false)
+
+        // Add the layout to the pages
+        a.pages.AddPage("main", flex, true, true)
+}</span>
+
+// Run starts the TUI application
+func (a *App) Run() error <span class="cov8" title="1">{
+        // Set up keyboard shortcuts
+        a.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov0" title="0">{
+                switch event.Key() </span>{
+                case tcell.KeyCtrlC, tcell.KeyEsc:<span class="cov0" title="0">
+                        a.Stop()
+                        return nil</span>
+                }
+                <span class="cov0" title="0">return event</span>
+        })
+
+        // If in test mode, don't actually run the event loop
+        <span class="cov8" title="1">if a.testMode </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        // Run the application
+        <span class="cov8" title="1">if err := a.app.Run(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// Stop gracefully shuts down the TUI application
+func (a *App) Stop() <span class="cov8" title="1">{
+        a.app.Stop()
+}</span>
+
+// App returns the underlying tview.Application instance
+func (a *App) App() *tview.Application <span class="cov8" title="1">{
+        return a.app
+}</span>
+
+// GetLayout returns the main pages layout for the TUI
+func (a *App) GetLayout() *tview.Pages <span class="cov8" title="1">{
+        return a.pages
+}</span>
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package tui
+
+import (
+        "fmt"
+        "strings"
+
+        "github.com/gdamore/tcell/v2"
+        "github.com/remym/go-dwg-extractor/pkg/data"
+        "github.com/rivo/tview"
+)
+
+// DXFView handles the display of DXF data
+type DXFView struct {
+        app               *tview.Application
+        pages             *tview.Pages
+        textView          *tview.TextView
+        layers            *tview.List
+        entityList        *tview.List
+        searchInput       *tview.InputField
+        data              *data.ExtractedData
+        currentLayerIndex int
+}
+
+// NewDXFView creates a new DXF view
+func NewDXFView(app *tview.Application) *DXFView <span class="cov8" title="1">{
+        // Create the main text view for layer details
+        textView := tview.NewTextView().
+                SetDynamicColors(true).
+                SetRegions(true).
+                SetWrap(false)
+
+        // Create the layers list
+        layers := tview.NewList()
+        layers.SetBorder(true).SetTitle("Layers")
+
+        // Create the entity list
+        entityList := tview.NewList()
+        entityList.SetBorder(true).SetTitle("Entities")
+
+        // Create search input
+        searchInput := tview.NewInputField().
+                SetLabel("Search: ").
+                SetFieldWidth(30).
+                SetPlaceholder("Type to filter layers... (Space/t: toggle visibility)")
+
+        // Create pages container
+        pages := tview.NewPages()
+
+        view := &amp;DXFView{
+                app:               app,
+                pages:             pages,
+                textView:          textView,
+                layers:            layers,
+                entityList:        entityList,
+                searchInput:       searchInput,
+                currentLayerIndex: -1,
+        }
+
+        // Set up search input handler
+        searchInput.SetChangedFunc(func(text string) </span><span class="cov0" title="0">{
+                view.FilterLayers(text)
+        }</span>)
+
+        // Set up keyboard navigation
+        <span class="cov8" title="1">view.setupKeybindings()
+
+        return view</span>
+}
+
+// Update updates the view with the given DXF data
+func (v *DXFView) Update(data *data.ExtractedData) <span class="cov8" title="1">{
+        v.data = data
+        v.currentLayerIndex = -1
+
+        // Clear the current content
+        v.textView.Clear()
+
+        // Display DXF version
+        fmt.Fprintf(v.textView, "[green]DXF Version:[-] %s\n\n", data.DXFVersion)
+
+        // Display number of layers
+        fmt.Fprintf(v.textView, "[green]Layers:[-] %d\n\n", len(data.Layers))
+
+        // Update layers list
+        v.updateLayersList()
+
+        // Show the layers view
+        v.showLayersView()
+}</span>
+
+// updateLayersList updates the layers list with current data
+func (v *DXFView) updateLayersList() <span class="cov8" title="1">{
+        v.layers.Clear()
+        for i, layer := range v.data.Layers </span><span class="cov8" title="1">{
+                // Create a string representation of the layer
+                onOff := "ON"
+                if !layer.IsOn </span><span class="cov8" title="1">{
+                        onOff = "OFF"
+                }</span>
+                <span class="cov8" title="1">frozen := ""
+                if layer.IsFrozen </span><span class="cov8" title="1">{
+                        frozen = " (FROZEN)"
+                }</span>
+                <span class="cov8" title="1">layerText := fmt.Sprintf("%s (Color: %d, %s%s)",
+                        layer.Name, layer.Color, onOff, frozen)
+
+                // Store the layer index as a reference
+                index := i
+                v.layers.AddItem(layerText, "", 0, func() </span><span class="cov0" title="0">{
+                        v.showLayerDetails(index)
+                }</span>)
+        }
+}
+
+// showLayersView shows the layers list view
+func (v *DXFView) showLayersView() <span class="cov8" title="1">{
+        // Create a flex container for the search input and layers list
+        listFlex := tview.NewFlex().SetDirection(tview.FlexRow)
+        listFlex.AddItem(v.searchInput, 1, 0, false)
+        listFlex.AddItem(v.layers, 0, 1, true)
+
+        // Create the main flex container
+        flex := tview.NewFlex().SetDirection(tview.FlexRow)
+        flex.AddItem(v.textView, 0, 1, false)
+        flex.AddItem(listFlex, 0, 3, true)
+
+        v.pages.SwitchToPage("layers")
+        v.app.SetFocus(v.searchInput)
+}</span>
+
+// showLayerDetails shows the details for a specific layer
+func (v *DXFView) showLayerDetails(layerIndex int) <span class="cov8" title="1">{
+        if layerIndex &lt; 0 || layerIndex &gt;= len(v.data.Layers) </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">v.currentLayerIndex = layerIndex
+        layer := v.data.Layers[layerIndex]
+
+        // Update the entity list
+        v.entityList.Clear()
+
+        // Add a back item
+        v.entityList.AddItem("← Back to Layers", "", 'b', func() </span><span class="cov0" title="0">{
+                v.showLayersView()
+        }</span>)
+
+        // Add entities for this layer
+        <span class="cov8" title="1">entityCount := 0
+        for _, entity := range layer.Entities </span><span class="cov8" title="1">{
+                switch e := entity.(type) </span>{
+                case *data.LineInfo:<span class="cov8" title="1">
+                        v.entityList.AddItem(
+                                fmt.Sprintf("Line (%.1f,%.1f) to (%.1f,%.1f)",
+                                        e.StartPoint.X, e.StartPoint.Y, e.EndPoint.X, e.EndPoint.Y),
+                                fmt.Sprintf("Layer: %s, Color: %d", e.Layer, e.Color),
+                                0, nil)
+                        entityCount++</span>
+                        // Add cases for other entity types as needed
+                }
+        }
+
+        // Update the text view with layer details
+        <span class="cov8" title="1">v.textView.Clear()
+        fmt.Fprintf(v.textView, "[green]Layer:[-] %s\n", layer.Name)
+        fmt.Fprintf(v.textView, "[green]Color:[-] %d\n", layer.Color)
+        fmt.Fprintf(v.textView, "[green]Status:[-] %s\n", map[bool]string{true: "ON", false: "OFF"}[layer.IsOn])
+        fmt.Fprintf(v.textView, "[green]Frozen:[-] %v\n", layer.IsFrozen)
+        fmt.Fprintf(v.textView, "[green]Line Type:[-] %s\n", layer.LineType)
+        fmt.Fprintf(v.textView, "[green]Entities:[-] %d\n\n", entityCount)
+
+        // Show the entities view
+        v.showEntitiesView()</span>
+}
+
+// showEntitiesView shows the entities list view
+func (v *DXFView) showEntitiesView() <span class="cov8" title="1">{
+        // Create a flex layout with the entities list and details
+        flex := tview.NewFlex().
+                AddItem(v.entityList, 0, 1, true).
+                AddItem(v.textView, 0, 1, false)
+
+        // Add or update the entities page
+        v.pages.AddAndSwitchToPage("entities", flex, true)
+}</span>
+
+// setupKeybindings sets up keyboard shortcuts
+func (v *DXFView) setupKeybindings() <span class="cov8" title="1">{
+        // Handle key events for the search input
+        v.searchInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov0" title="0">{
+                switch event.Key() </span>{
+                case tcell.KeyDown, tcell.KeyTab:<span class="cov0" title="0">
+                        // Move focus to the layers list
+                        v.app.SetFocus(v.layers)
+                        return nil</span>
+                case tcell.KeyEsc:<span class="cov0" title="0">
+                        // Clear search and reset focus
+                        v.searchInput.SetText("")
+                        v.app.SetFocus(v.layers)
+                        return nil</span>
+                }
+                <span class="cov0" title="0">return event</span>
+        })
+
+        // Handle key events for the layers list
+        <span class="cov8" title="1">v.layers.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov0" title="0">{
+                switch event.Key() </span>{
+                case tcell.KeyEnter:<span class="cov0" title="0">
+                        if v.layers.GetItemCount() &gt; 0 </span><span class="cov0" title="0">{
+                                index := v.layers.GetCurrentItem()
+                                v.showLayerDetails(index)
+                        }</span>
+                        <span class="cov0" title="0">return nil</span>
+                case tcell.KeyEsc, tcell.KeyBackspace, tcell.KeyBackspace2:<span class="cov0" title="0">
+                        // Move focus back to search
+                        v.app.SetFocus(v.searchInput)
+                        return nil</span>
+                case tcell.KeyRune:<span class="cov0" title="0">
+                        // Space or 't' toggles layer visibility
+                        if event.Rune() == ' ' || event.Rune() == 't' || event.Rune() == 'T' </span><span class="cov0" title="0">{
+                                idx := v.layers.GetCurrentItem()
+                                v.ToggleLayerVisibility(idx)
+                                return nil
+                        }</span>
+                        // If a letter or number is pressed, focus on search and type
+                        <span class="cov0" title="0">if (event.Rune() &gt;= 'a' &amp;&amp; event.Rune() &lt;= 'z') ||
+                                (event.Rune() &gt;= 'A' &amp;&amp; event.Rune() &lt;= 'Z') ||
+                                (event.Rune() &gt;= '0' &amp;&amp; event.Rune() &lt;= '9') ||
+                                event.Rune() == ' ' || event.Rune() == ':' </span><span class="cov0" title="0">{
+                                v.app.SetFocus(v.searchInput)
+                                // Append the pressed key to the search input
+                                v.searchInput.SetText(v.searchInput.GetText() + string(event.Rune()))
+                                return nil
+                        }</span>
+                }
+                <span class="cov0" title="0">return event</span>
+        })
+
+        // Handle key events for the entity list
+        <span class="cov8" title="1">v.entityList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey </span><span class="cov0" title="0">{
+                switch event.Key() </span>{
+                case tcell.KeyEsc, tcell.KeyBackspace, tcell.KeyBackspace2:<span class="cov0" title="0">
+                        v.showLayersView()
+                        return nil</span>
+                }
+                <span class="cov0" title="0">return event</span>
+        })
+}
+
+// GetLayout returns the pages container for the DXF view
+func (v *DXFView) GetLayout() *tview.Pages <span class="cov8" title="1">{
+        return v.pages
+}</span>
+
+// SetLayersChangedFunc sets the function to be called when a layer is selected
+func (v *DXFView) SetLayersChangedFunc(handler func(index int, name string, secondaryText string, shortcut rune)) <span class="cov8" title="1">{
+        v.layers.SetChangedFunc(handler)
+}</span>
+
+// SetLayersSelectedFunc sets the function to be called when a layer is selected
+func (v *DXFView) SetLayersSelectedFunc(handler func(index int, name string, secondaryText string, shortcut rune)) <span class="cov8" title="1">{
+        v.layers.SetSelectedFunc(handler)
+}</span>
+
+// ToggleLayerVisibility toggles the visibility (IsOn) of the layer at the given visible index.
+func (v *DXFView) ToggleLayerVisibility(visibleIndex int) <span class="cov8" title="1">{
+        if v.data == nil || v.layers.GetItemCount() == 0 || visibleIndex &lt; 0 || visibleIndex &gt;= v.layers.GetItemCount() </span><span class="cov0" title="0">{
+                return
+        }</span>
+        // Find the actual layer index in v.data.Layers by matching name
+        <span class="cov8" title="1">mainText, _ := v.layers.GetItemText(visibleIndex)
+        // Extract the layer name from the display string (before first ' (')
+        name := mainText
+        if idx := strings.Index(mainText, " ("); idx &gt; 0 </span><span class="cov8" title="1">{
+                name = mainText[:idx]
+        }</span>
+        <span class="cov8" title="1">for i := range v.data.Layers </span><span class="cov8" title="1">{
+                if v.data.Layers[i].Name == name </span><span class="cov8" title="1">{
+                        // Don't toggle frozen layers
+                        if !v.data.Layers[i].IsFrozen </span><span class="cov8" title="1">{
+                                v.data.Layers[i].IsOn = !v.data.Layers[i].IsOn
+                        }</span>
+                        <span class="cov8" title="1">break</span>
+                }
+        }
+        // Re-filter or update the list to reflect the change
+        <span class="cov8" title="1">if v.searchInput != nil &amp;&amp; v.searchInput.GetText() != "" </span><span class="cov0" title="0">{
+                v.FilterLayers(v.searchInput.GetText())
+        }</span> else<span class="cov8" title="1"> {
+                v.updateLayersList()
+        }</span>
+}
+
+// FilterLayers filters the layers list based on the provided query string.
+// The query can be:
+// - A simple string to filter by layer name (case-insensitive)
+// - "on:true" or "on:false" to filter by layer on/off status
+// - "frozen:true" or "frozen:false" to filter by frozen status
+// - An empty string to clear all filters
+func (v *DXFView) FilterLayers(query string) <span class="cov8" title="1">{
+        if v.data == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        // Store the current scroll position
+        <span class="cov8" title="1">_, currentOffset := v.layers.GetOffset()
+
+        // Clear the current list
+        v.layers.Clear()
+
+        // If query is empty, show all layers
+        if query == "" </span><span class="cov8" title="1">{
+                v.updateLayersList()
+                v.layers.SetOffset(0, currentOffset)
+                return
+        }</span>
+
+        // Convert query to lowercase for case-insensitive comparison
+        <span class="cov8" title="1">query = strings.ToLower(query)
+
+        // Check for special filter types
+        var filterFunc func(layer data.LayerInfo) bool
+
+        switch </span>{
+        case strings.HasPrefix(query, "on:true"):<span class="cov8" title="1">
+                filterFunc = func(layer data.LayerInfo) bool </span><span class="cov8" title="1">{
+                        return layer.IsOn
+                }</span>
+        case strings.HasPrefix(query, "on:false"):<span class="cov0" title="0">
+                filterFunc = func(layer data.LayerInfo) bool </span><span class="cov0" title="0">{
+                        return !layer.IsOn
+                }</span>
+        case strings.HasPrefix(query, "frozen:true"):<span class="cov8" title="1">
+                filterFunc = func(layer data.LayerInfo) bool </span><span class="cov8" title="1">{
+                        return layer.IsFrozen
+                }</span>
+        case strings.HasPrefix(query, "frozen:false"):<span class="cov0" title="0">
+                filterFunc = func(layer data.LayerInfo) bool </span><span class="cov0" title="0">{
+                        return !layer.IsFrozen
+                }</span>
+        default:<span class="cov8" title="1">
+                // Filter by name (case-insensitive)
+                filterFunc = func(layer data.LayerInfo) bool </span><span class="cov8" title="1">{
+                        return strings.Contains(strings.ToLower(layer.Name), query)
+                }</span>
+        }
+
+        // Filter and add layers
+        <span class="cov8" title="1">for i, layer := range v.data.Layers </span><span class="cov8" title="1">{
+                if filterFunc(layer) </span><span class="cov8" title="1">{
+                        onOff := "ON"
+                        if !layer.IsOn </span><span class="cov8" title="1">{
+                                onOff = "OFF"
+                        }</span>
+                        <span class="cov8" title="1">frozen := ""
+                        if layer.IsFrozen </span><span class="cov8" title="1">{
+                                frozen = " (FROZEN)"
+                        }</span>
+                        <span class="cov8" title="1">layerText := fmt.Sprintf("%s (Color: %d, %s%s)",
+                                layer.Name, layer.Color, onOff, frozen)
+
+                        // Store the layer index as a reference
+                        index := i
+                        v.layers.AddItem(layerText, "", 0, func() </span><span class="cov0" title="0">{
+                                v.showLayerDetails(index)
+                        }</span>)
+                }
+        }
+
+        // Restore scroll position if possible
+        <span class="cov8" title="1">v.layers.SetOffset(0, currentOffset)</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package tui
+
+import "github.com/rivo/tview"
+
+// NewStatusView creates a simple TextView for status/progress/error display
+func NewStatusView() *tview.TextView <span class="cov0" title="0">{
+        view := tview.NewTextView()
+        view.SetDynamicColors(true)
+        view.SetTextAlign(tview.AlignCenter)
+        view.SetBorder(true)
+        view.SetTitle("Status")
+        return view
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
