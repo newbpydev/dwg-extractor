@@ -101,7 +101,41 @@ func (c *odaconverter) ConvertToDXF(dwgPath, outputDir string) (string, error) {
 		if err != nil || len(files) == 0 {
 			return "", fmt.Errorf("conversion failed: no DXF file was generated")
 		}
-		dxfPath = files[0] // Use the first DXF file found
+
+		// Filter files to only include those that were likely created by this conversion
+		// We'll check modification time to avoid using pre-existing files
+		var recentFiles []string
+		conversionStartTime := time.Now().Add(-6 * time.Minute) // Allow 6 minutes for conversion
+
+		for _, file := range files {
+			info, err := os.Stat(file)
+			if err != nil {
+				continue
+			}
+
+			// Only consider files modified after we started the conversion
+			if info.ModTime().After(conversionStartTime) {
+				recentFiles = append(recentFiles, file)
+			}
+		}
+
+		if len(recentFiles) == 0 {
+			return "", fmt.Errorf("conversion failed: no recently created DXF file was found")
+		}
+
+		// Prefer files with the expected base name, but accept any recent file
+		expectedBase := baseName + ".dxf"
+		for _, file := range recentFiles {
+			if filepath.Base(file) == expectedBase {
+				dxfPath = file
+				break
+			}
+		}
+
+		// If no file with expected name found, use the first recent file
+		if dxfPath == filepath.Join(outputDir, baseName+".dxf") {
+			dxfPath = recentFiles[0]
+		}
 	}
 
 	return dxfPath, nil
