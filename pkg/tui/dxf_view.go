@@ -156,7 +156,8 @@ func (v *DXFView) showLayersView() {
 	flex.AddItem(v.textView, 0, 1, false)
 	flex.AddItem(listFlex, 0, 3, true)
 
-	v.pages.SwitchToPage("layers")
+	// Add or update the layers page
+	v.pages.AddAndSwitchToPage("layers", flex, true)
 	v.app.SetFocus(v.searchInput)
 }
 
